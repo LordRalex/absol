@@ -1,4 +1,4 @@
-package handlers
+package twitch
 
 type TwitchApi struct {
 	Data []TwitchApiData `json:"data"`

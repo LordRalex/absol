@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/handlers"
+	"github.com/lordralex/absol/handlers/mcf"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
 	"os"
@@ -19,7 +20,6 @@ func init() {
 }
 
 func main() {
-
 	token := viper.GetString("discord_token")
 
 	if token == "" {
@@ -30,6 +30,8 @@ func main() {
 	}
 
 	OpenConnection(token)
+
+	mcf.Schedule(Session)
 
 	// Wait for a CTRL-C
 	fmt.Println(`Now running. Press CTRL-C to exit.`)

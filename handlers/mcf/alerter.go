@@ -2,6 +2,7 @@ package mcf
 
 import (
 	"encoding/xml"
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 	"net/http"
@@ -13,6 +14,11 @@ var silent = false
 var client = &http.Client{}
 
 const ErrorUrl = "https://www.minecraftforum.net/cp/elmah/rss"
+
+func init() {
+	viper.SetDefault("MCF_PERIOD", 2)
+	viper.SetDefault("MCF_COUNT", 5)
+}
 
 func Schedule(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
@@ -44,22 +50,6 @@ func runTick(ds *discordgo.Session) {
 	req.Method = "GET"
 
 	req.AddCookie(&http.Cookie{
-		Name:    "AWSELB",
-		Value:   viper.GetString("cookies_awselb"),
-		Path:    "/",
-		Domain:  "www.minecraftforum.net",
-		Expires: time.Now().Add(time.Hour * 24 * 365),
-		Secure:  true,
-	})
-	req.AddCookie(&http.Cookie{
-		Name:    "__cfduid",
-		Value:   viper.GetString("cookies___cfduid"),
-		Path:    "/",
-		Domain:  ".minecraftforum.net",
-		Expires: time.Now().Add(time.Hour * 24 * 365),
-		Secure:  true,
-	})
-	req.AddCookie(&http.Cookie{
 		Name:    "CobaltSession",
 		Value:   viper.GetString("cookies_cobaltsession"),
 		Path:    "/",
@@ -88,6 +78,19 @@ func runTick(ds *discordgo.Session) {
 
 	if err != nil {
 		sendMessage(ds, "RSS feed failed: "+err.Error())
+	}
+
+	period := viper.GetInt("MCF_PERIOD")
+	cutoffTime := time.Now().Add(time.Duration(-1 * period) * time.Minute)
+	counter := 0
+	for _, e := range data.Channel.Item {
+		if e.PublishDate.After(cutoffTime) {
+			counter++
+		}
+	}
+
+	if counter >= viper.GetInt("MCF_COUNT") {
+		sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, period))
 	}
 }
 

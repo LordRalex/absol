@@ -31,7 +31,7 @@ func (d *Date) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 		return err
 	}
 
-	parse, err := time.Parse("RFC1123", v)
+	parse, err := time.Parse(time.RFC1123, v)
 	if err != nil {
 		return err
 	}

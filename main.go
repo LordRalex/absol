@@ -5,6 +5,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/handlers"
 	"github.com/lordralex/absol/handlers/mcf"
+	"github.com/lordralex/absol/handlers/servers"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
 	"os"
@@ -32,6 +33,7 @@ func main() {
 	OpenConnection(token)
 
 	mcf.Schedule(Session)
+	servers.Schedule(Session)
 
 	// Wait for a CTRL-C
 	fmt.Println(`Now running. Press CTRL-C to exit.`)

@@ -33,13 +33,14 @@ func runTick(ds *discordgo.Session) {
 
 	cutOff := time.Now().Add(PostDelay)
 
-	for _, guild := range ds.State.Guilds {
+	for _, g := range ds.State.Guilds {
+		guild, _ := ds.Guild(g.ID)
 		if guild.Name == server {
-			for _, ch := range guild.Channels {
-				c, err := ds.State.Channel(ch.ID)
+			for _, channel := range channels {
+				c, err := ds.State.Channel(channel)
 				if err != nil {
 					// Try fetching via REST API
-					c, err = ds.Channel(ch.ID)
+					c, err = ds.Channel(channel)
 					if err != nil {
 						logger.Err().Printf("unable to fetch Channel for Message, %s", err)
 					} else {
@@ -50,35 +51,33 @@ func runTick(ds *discordgo.Session) {
 						}
 					}
 				}
-				for _, channel := range channels {
-					if c.Name == channel {
-						messages := make([]string, 0)
-						chanMessages, err := ds.ChannelMessages(c.ID, 100, "", "", "")
-						if err != nil {
-							logger.Err().Printf("Error cleaning channel: %v", err.Error())
-							continue
-						}
 
-						for _, m := range chanMessages {
-							creationDate, err := m.Timestamp.Parse()
-							if err != nil {
-								continue
-							}
-							if creationDate.Before(cutOff) {
-								messages = append(messages, m.ID)
-								if len(messages) > 20 {
-									break
-								}
-							}
-						}
+				messages := make([]string, 0)
+				//we use 1 here so that we go back to the beginning of time
+				chanMessages, err := ds.ChannelMessages(c.ID, 100, "", "1", "")
+				if err != nil {
+					logger.Err().Printf("Error cleaning channel: %v", err.Error())
+					continue
+				}
 
-						logger.Debug().Printf("Deleting %d messages", len(messages))
-
-						err = ds.ChannelMessagesBulkDelete(c.ID, messages)
-						if err != nil {
-							logger.Err().Printf("Error cleaning channel: %v", err.Error())
+				for _, m := range chanMessages {
+					creationDate, err := m.Timestamp.Parse()
+					if err != nil {
+						continue
+					}
+					if creationDate.Before(cutOff) {
+						messages = append(messages, m.ID)
+						if len(messages) > 20 {
+							break
 						}
 					}
+				}
+
+				logger.Debug().Printf("Deleting %d messages", len(messages))
+
+				err = ds.ChannelMessagesBulkDelete(c.ID, messages)
+				if err != nil {
+					logger.Err().Printf("Error cleaning channel: %v", err.Error())
 				}
 			}
 		}

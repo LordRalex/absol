@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
 	"net/http"
 	"net/url"
@@ -24,11 +25,13 @@ func Schedule(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
 		timer := time.NewTicker(time.Minute)
 
-		select {
-		case <-timer.C:
-			{
-				runTick(ds)
-			}}
+		for {
+			select {
+			case <-timer.C:
+				{
+					runTick(ds)
+				}}
+		}
 	}(d)
 }
 
@@ -37,9 +40,17 @@ func RunTick() {
 }
 
 func runTick(ds *discordgo.Session) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Err().Printf("Error running MCF tick: %v", err)
+		}
+	}()
+
 	if silent {
 		return
 	}
+
+	logger.Debug().Printf("Pinging MCF")
 
 	var err error
 
@@ -81,8 +92,13 @@ func runTick(ds *discordgo.Session) {
 	}
 
 	period := viper.GetInt("MCF_PERIOD")
-	cutoffTime := time.Now().Add(time.Duration(-1 * period) * time.Minute)
+	cutoffTime := time.Now().Add(time.Duration(-1*period) * time.Minute)
 	counter := 0
+
+	if len(data.Channel.Item) == 0 {
+		sendMessage(ds, "RSS feed failed: No items in log")
+	}
+
 	for _, e := range data.Channel.Item {
 		if e.PublishDate.After(cutoffTime) {
 			counter++
@@ -95,14 +111,18 @@ func runTick(ds *discordgo.Session) {
 }
 
 func sendMessage(ds *discordgo.Session, msg string) {
+	logger.Out().Printf(msg)
 	channel := viper.GetString("alertChannel")
 	server := viper.GetString("alertServer")
 
+	logger.Debug().Printf("Sending message to server '%s' and channel '%s'", server, channel)
+
 	for _, guild := range ds.State.Guilds {
-		if guild.ID == server {
+		if guild.Name == server {
 			for _, c := range guild.Channels {
 				if c.Name == channel {
 					_, _ = ds.ChannelMessageSend(c.ID, msg)
+					silent = true
 					time.AfterFunc(time.Minute*5, func() {
 						silent = false
 					})

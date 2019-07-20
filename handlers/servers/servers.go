@@ -35,11 +35,31 @@ func runTick(ds *discordgo.Session) {
 
 	for _, guild := range ds.State.Guilds {
 		if guild.Name == server {
-			for _, c := range guild.Channels {
+			for _, ch := range guild.Channels {
+				c, err := ds.State.Channel(ch.ID)
+				if err != nil {
+					// Try fetching via REST API
+					c, err = ds.Channel(ch.ID)
+					if err != nil {
+						logger.Err().Printf("unable to fetch Channel for Message, %s", err)
+					} else {
+						// Attempt to add this channel into our State
+						err = ds.State.ChannelAdd(c)
+						if err != nil {
+							logger.Err().Printf("error updating State with Channel, %s", err)
+						}
+					}
+				}
 				for _, channel := range channels {
 					if c.Name == channel {
 						messages := make([]string, 0)
-						for _, m := range c.Messages {
+						chanMessages, err := ds.ChannelMessages(c.ID, 100, "", "", "")
+						if err != nil {
+							logger.Err().Printf("Error cleaning channel: %v", err.Error())
+							continue
+						}
+
+						for _, m := range chanMessages {
 							creationDate, err := m.Timestamp.Parse()
 							if err != nil {
 								continue
@@ -54,7 +74,7 @@ func runTick(ds *discordgo.Session) {
 
 						logger.Debug().Printf("Deleting %d messages", len(messages))
 
-						err := ds.ChannelMessagesBulkDelete(c.ID, messages)
+						err = ds.ChannelMessagesBulkDelete(c.ID, messages)
 						if err != nil {
 							logger.Err().Printf("Error cleaning channel: %v", err.Error())
 						}

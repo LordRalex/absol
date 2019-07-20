@@ -12,6 +12,8 @@ const PostDelay = -1 * time.Hour * 24
 
 func Schedule(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
+		runTick(ds)
+
 		timer := time.NewTicker(30 * time.Minute)
 
 		select {

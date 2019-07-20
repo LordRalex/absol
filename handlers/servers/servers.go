@@ -34,7 +34,7 @@ func runTick(ds *discordgo.Session) {
 	cutOff := time.Now().Add(PostDelay)
 
 	for _, guild := range ds.State.Guilds {
-		if guild.ID == server {
+		if guild.Name == server {
 			for _, c := range guild.Channels {
 				for _, channel := range channels {
 					if c.Name == channel {

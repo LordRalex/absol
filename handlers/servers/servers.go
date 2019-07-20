@@ -43,11 +43,13 @@ func runTick(ds *discordgo.Session) {
 					c, err = ds.Channel(channel)
 					if err != nil {
 						logger.Err().Printf("unable to fetch Channel for Message, %s", err)
+						return
 					} else {
 						// Attempt to add this channel into our State
 						err = ds.State.ChannelAdd(c)
 						if err != nil {
 							logger.Err().Printf("error updating State with Channel, %s", err)
+							return
 						}
 					}
 				}

@@ -13,7 +13,7 @@ import (
 
 var db *sql.DB
 
-var lastAuditId string
+var lastAuditIds = make(map[string]string)
 var auditLastCheck sync.Mutex
 
 func RegisterCore(session *discordgo.Session) {
@@ -40,12 +40,15 @@ func RegisterCore(session *discordgo.Session) {
 func OnConnect(ds *discordgo.Session, mc *discordgo.Connect) {
 	auditLastCheck.Lock()
 	defer auditLastCheck.Unlock()
-	auditLog, err := ds.GuildAuditLog(ds.State.Guilds[0].ID, "", "", discordgo.AuditLogActionMessageDelete, 1)
-	if err != nil {
-		logger.Err().Printf("Failed to check audit log: %s", err.Error())
-	} else {
-		for _, v := range auditLog.AuditLogEntries {
-			lastAuditId = v.ID
+
+	for _, guild := range ds.State.Guilds {
+		auditLog, err := ds.GuildAuditLog(guild.ID, "", "", discordgo.AuditLogActionMessageDelete, 1)
+		if err != nil {
+			logger.Err().Printf("Failed to check audit log: %s", err.Error())
+		} else {
+			for _, v := range auditLog.AuditLogEntries {
+				lastAuditIds[guild.ID] = v.ID
+			}
 		}
 	}
 }
@@ -158,7 +161,6 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 	}
 
-
 }
 
 func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
@@ -176,11 +178,11 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 			logger.Err().Printf("Failed to check audit log: %s", err.Error())
 		} else {
 			for _, v := range auditLog.AuditLogEntries {
-				if lastAuditId == v.ID {
+				if lastAuditIds[mc.GuildID] == v.ID {
 					//we have already processed this ID, which means the delete was a self-delete
 				} else {
 
-					lastAuditId = v.ID
+					lastAuditIds[mc.GuildID] = v.ID
 
 					var deleter, messenger string
 					for _, u := range auditLog.Users {

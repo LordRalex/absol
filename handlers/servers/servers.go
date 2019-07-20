@@ -25,6 +25,7 @@ func Schedule(d *discordgo.Session) {
 }
 
 func runTick(ds *discordgo.Session) {
+	logger.Debug().Print("Running channel cleanup")
 	envChan := viper.GetString("cleanerChannel")
 	server := viper.GetString("cleanerServer")
 
@@ -50,6 +51,8 @@ func runTick(ds *discordgo.Session) {
 								}
 							}
 						}
+
+						logger.Debug().Printf("Deleting %d messages", len(messages))
 
 						err := ds.ChannelMessagesBulkDelete(c.ID, messages)
 						if err != nil {

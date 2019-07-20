@@ -4,6 +4,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
+	"strings"
 	"time"
 )
 
@@ -22,8 +23,10 @@ func Schedule(d *discordgo.Session) {
 }
 
 func runTick(ds *discordgo.Session) {
-	channels := viper.GetStringSlice("cleanerChannel")
+	envChan := viper.GetString("cleanerChannel")
 	server := viper.GetString("cleanerServer")
+
+	channels := strings.Split(envChan, "|")
 
 	cutOff := time.Now().Add(PostDelay)
 

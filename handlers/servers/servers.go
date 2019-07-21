@@ -54,6 +54,12 @@ func runTick(ds *discordgo.Session) {
 					}
 				}
 
+				pinned, err := ds.ChannelMessagesPinned(c.ID)
+				if err != nil {
+					logger.Err().Printf("Error cleaning channel: %v", err.Error())
+					continue
+				}
+
 				messages := make([]string, 0)
 				//we use 1 here so that we go back to the beginning of time
 				chanMessages, err := ds.ChannelMessages(c.ID, 100, "", "1", "")
@@ -63,10 +69,22 @@ func runTick(ds *discordgo.Session) {
 				}
 
 				for _, m := range chanMessages {
+					skip := false
+					for _, p := range pinned {
+						if p.ID == m.ID {
+							skip = true
+						}
+					}
+
+					if skip {
+						continue
+					}
+
 					creationDate, err := m.Timestamp.Parse()
 					if err != nil {
 						continue
 					}
+
 					if creationDate.Before(cutOff) {
 						messages = append(messages, m.ID)
 						if len(messages) > 20 {

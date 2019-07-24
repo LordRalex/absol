@@ -16,11 +16,14 @@ func Schedule(d *discordgo.Session) {
 
 		timer := time.NewTicker(10 * time.Minute)
 
-		select {
-		case <-timer.C:
-			{
-				runTick(ds)
-			}}
+		for {
+			select {
+			case <-timer.C:
+				{
+					runTick(ds)
+				}}
+		}
+
 	}(d)
 }
 

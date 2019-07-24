@@ -14,7 +14,7 @@ func Schedule(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
 		runTick(ds)
 
-		timer := time.NewTicker(30 * time.Minute)
+		timer := time.NewTicker(10 * time.Minute)
 
 		select {
 		case <-timer.C:

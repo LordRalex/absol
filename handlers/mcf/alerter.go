@@ -13,6 +13,7 @@ import (
 
 var silent = false
 var client = &http.Client{}
+var lastPingFailed = false
 
 const ErrorUrl = "https://www.minecraftforum.net/cp/elmah/rss"
 
@@ -71,7 +72,12 @@ func runTick(ds *discordgo.Session) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		sendMessage(ds, "Error pinging main site: "+err.Error())
+		if lastPingFailed {
+			sendMessage(ds, "Error pinging main site: "+err.Error())
+			lastPingFailed = false
+		} else {
+			lastPingFailed = true
+		}
 		return
 	}
 	defer func() {

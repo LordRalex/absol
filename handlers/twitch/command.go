@@ -9,19 +9,18 @@ import (
 	"net/url"
 )
 
-var ClientId string
 var Client *http.Client
 
 const ApiUrl string = "https://api.twitch.tv/helix/users?login="
 
 func init() {
-	ClientId = viper.GetString("twitch")
-
 	Client = &http.Client{}
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo.Channel, cmd string, args []string) {
 	var err error
+
+	ClientId := viper.GetString("twitch")
 
 	if ClientId == "" {
 		_, err = ds.ChannelMessageSend(c.ID, "Failed to get twitch info, contact the admin")

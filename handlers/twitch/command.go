@@ -29,6 +29,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	}
 
 	if len(args) != 1 {
+		_, err = ds.ChannelMessageSend(c.ID, "Name required")
 		logger.Err().Printf("Name required")
 		return
 	}
@@ -55,10 +56,21 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 		logger.Err().Printf("unable to call twitch API\n%s", err)
 		return
 	}
-	defer response.Body.Close()
+	defer func() {
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
+	}()
 
 	data := &TwitchApi{}
-	_ = json.NewDecoder(response.Body).Decode(data)
+	err = json.NewDecoder(response.Body).Decode(data)
+
+	if err != nil {
+		_, err = ds.ChannelMessageSend(c.ID, "Failed to get twitch info, contact the admin")
+		logger.Err().Printf("unable to call twitch API\n%s", err)
+		return
+	}
+
 	if data.Data == nil {
 		_, err = ds.ChannelMessageSend(c.ID, "Failed to get twitch info, contact the admin")
 		if err != nil {

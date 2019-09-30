@@ -13,8 +13,8 @@ import (
 type site struct {
 	SiteName       string
 	RSSUrl         string
-	AlertChannel   string
-	AlertServer    string
+	AlertChannel   []string
+	AlertServer    []string
 	Cookie         string
 	Domain         string
 	MaxErrors      int
@@ -103,15 +103,17 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 
 	logger.Debug().Printf("Sending message to server '%s' and channel '%s'", s.AlertServer, s.AlertChannel)
 
-	for _, guild := range ds.State.Guilds {
-		if guild.Name == s.AlertServer {
-			for _, c := range guild.Channels {
-				if c.Name == s.AlertChannel {
-					_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("[%s] %s", s.SiteName, msg))
-					s.silent = true
-					time.AfterFunc(time.Minute*5, func() {
-						s.silent = false
-					})
+	for k, v := range s.AlertServer {
+		for _, guild := range ds.State.Guilds {
+			if guild.Name == v {
+				for _, c := range guild.Channels {
+					if c.Name == s.AlertChannel[k] {
+						_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("[%s] %s", s.SiteName, msg))
+						s.silent = true
+						time.AfterFunc(time.Minute*5, func() {
+							s.silent = false
+						})
+					}
 				}
 			}
 		}

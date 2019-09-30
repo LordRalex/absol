@@ -5,6 +5,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/handlers"
 	"github.com/lordralex/absol/handlers/alert"
+	"github.com/lordralex/absol/handlers/log"
 	"github.com/lordralex/absol/handlers/servers"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
@@ -58,7 +59,7 @@ func OpenConnection(token string) {
 	}
 	Session.Token = token
 
-	handlers.RegisterCore(Session)
+	log.RegisterCore(Session)
 	handlers.RegisterCommands(Session)
 
 	err := Session.Open()

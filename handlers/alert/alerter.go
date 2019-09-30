@@ -4,6 +4,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/viper"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -16,18 +17,22 @@ func Schedule(d *discordgo.Session) {
 	viper.SetDefault("MCF_COUNT", 5)
 	viper.SetDefault("MCF_PERIOD", 2)
 
-	sites = append(sites, &site{
-		SiteName:       "MinecraftForum",
-		RSSUrl:         "https://www.minecraftforum.net/cp/elmah/rss",
-		AlertChannel:   viper.GetString("ALERTCHANNEL"),
-		AlertServer:    viper.GetString("ALERTSERVER"),
-		Cookie:         viper.GetString("COOKIES_COBALTSESSION"),
-		Domain:         ".minecraftforum.net",
-		MaxErrors:      viper.GetInt("MCF_COUNT"),
-		Period:         viper.GetInt("MCF_PERIOD"),
-		lastPingFailed: false,
-		silent:         false,
-	})
+	siteKeys := strings.Split(viper.GetString("SITES"), ";")
+
+	for _, v := range siteKeys {
+		sites = append(sites, &site{
+			SiteName:       v,
+			RSSUrl:         viper.GetString("SITES_" + v + "_RSS"),
+			AlertChannel:   strings.Split(viper.GetString("SITES_"+v+"_CHANNELS"), ";"),
+			AlertServer:    strings.Split(viper.GetString("SITES_"+v+"_SERVERS"), ";"),
+			Cookie:         viper.GetString("SITES_" + v + "_COOKIES_COBALTSESSION"),
+			Domain:         viper.GetString("SITES_" + v + "_DOMAIN"),
+			MaxErrors:      viper.GetInt("SITES_" + v + "_MAXERRORS"),
+			Period:         viper.GetInt("SITES_" + v + "_PERIOD"),
+			lastPingFailed: false,
+			silent:         false,
+		})
+	}
 
 	go func(ds *discordgo.Session) {
 		timer := time.NewTicker(time.Minute)

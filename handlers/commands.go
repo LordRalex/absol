@@ -63,9 +63,5 @@ func OnMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		{
 			twitch.RunCommand(ds, mc, c, cmd, args)
 		}
-	case "mutemcf":
-		{
-			twitch.RunCommand(ds, mc, c, cmd, args)
-		}
 	}
 }

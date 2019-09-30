@@ -1,5 +1,6 @@
 FROM golang:alpine
 
+WORKDIR /build
 COPY . .
 
 RUN apk add --no-cache curl git iputils bash \

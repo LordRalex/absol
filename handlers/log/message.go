@@ -8,6 +8,7 @@ import (
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -15,9 +16,12 @@ var db *sql.DB
 
 var lastAuditIds = make(map[string]string)
 var auditLastCheck sync.Mutex
+var loggedServers []string
 
 func RegisterCore(session *discordgo.Session) {
 	var err error
+
+	loggedServers = strings.Split(viper.GetString("LOGGED_SERVERS"), ";")
 
 	connString := viper.GetString("database")
 	if connString == "" {
@@ -58,20 +62,23 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
-	c, err := ds.State.Channel(mc.ChannelID)
-	if err != nil {
-		// Try fetching via REST API
-		c, err = ds.Channel(mc.ChannelID)
-		if err != nil {
-			logger.Err().Printf("unable to fetch Channel for Message, %s", err)
-		} else {
-			// Attempt to add this channel into our State
-			err = ds.State.ChannelAdd(c)
-			if err != nil {
-				logger.Err().Printf("error updating State with Channel, %s", err)
-			}
+	g := getGuild(ds, mc.GuildID)
+	if g == nil {
+		return
+	}
+
+	logged := false
+	for _, v := range loggedServers {
+		if v == g.Name {
+			logged = true
 		}
 	}
+
+	if !logged {
+		return
+	}
+
+	c := getChannel(ds, mc.ChannelID)
 
 	if c == nil || c.Type == discordgo.ChannelTypeDM {
 		return
@@ -100,20 +107,23 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		return
 	}
 
-	c, err := ds.State.Channel(mc.ChannelID)
-	if err != nil {
-		// Try fetching via REST API
-		c, err = ds.Channel(mc.ChannelID)
-		if err != nil {
-			logger.Err().Printf("unable to fetch Channel for Message, %s", err)
-		} else {
-			// Attempt to add this channel into our State
-			err = ds.State.ChannelAdd(c)
-			if err != nil {
-				logger.Err().Printf("error updating State with Channel, %s", err)
-			}
+	g := getGuild(ds, mc.GuildID)
+	if g == nil {
+		return
+	}
+
+	logged := false
+	for _, v := range loggedServers {
+		if v == g.Name {
+			logged = true
 		}
 	}
+
+	if !logged {
+		return
+	}
+
+	c := getChannel(ds, mc.ChannelID)
 
 	if c == nil || c.Type == discordgo.ChannelTypeDM {
 		return
@@ -164,6 +174,22 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 }
 
 func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
+	g := getGuild(ds, mc.GuildID)
+	if g == nil {
+		return
+	}
+
+	logged := false
+	for _, v := range loggedServers {
+		if v == g.Name {
+			logged = true
+		}
+	}
+
+	if !logged {
+		return
+	}
+
 	if mc.Author != nil && mc.Author.Username != "" {
 		logger.Debug().Printf("[DELETE] [%s] [%s]", mc.Author.Username, mc.ID)
 	} else {
@@ -181,7 +207,6 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 				if lastAuditIds[mc.GuildID] == v.ID {
 					//we have already processed this ID, which means the delete was a self-delete
 				} else {
-
 					lastAuditIds[mc.GuildID] = v.ID
 
 					var deleter, messenger string
@@ -220,6 +245,22 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 }
 
 func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk) {
+	g := getGuild(ds, mc.GuildID)
+	if g == nil {
+		return
+	}
+
+	logged := false
+	for _, v := range loggedServers {
+		if v == g.Name {
+			logged = true
+		}
+	}
+
+	if !logged {
+		return
+	}
+
 	logger.Debug().Printf("[DELETE-BULK] [%s]", mc.Messages)
 
 	for _, v := range mc.Messages {
@@ -235,4 +276,42 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 			}
 		}(v)
 	}
+}
+
+func getGuild(ds *discordgo.Session, guildId string) *discordgo.Guild {
+	g, err := ds.State.Guild(guildId)
+	if err != nil {
+		// Try fetching via REST API
+		g, err = ds.Guild(guildId)
+		if err != nil {
+			logger.Err().Printf("unable to fetch Guild for Message, %s", err)
+		} else {
+			// Attempt to add this channel into our State
+			err = ds.State.GuildAdd(g)
+			if err != nil {
+				logger.Err().Printf("error updating Guild with Channel, %s", err)
+			}
+		}
+	}
+
+	return g
+}
+
+func getChannel(ds *discordgo.Session, channelId string) *discordgo.Channel {
+	c, err := ds.State.Channel(channelId)
+	if err != nil {
+		// Try fetching via REST API
+		c, err = ds.Channel(channelId)
+		if err != nil {
+			logger.Err().Printf("unable to fetch Channel for Message, %s", err)
+		} else {
+			// Attempt to add this channel into our State
+			err = ds.State.ChannelAdd(c)
+			if err != nil {
+				logger.Err().Printf("error updating State with Channel, %s", err)
+			}
+		}
+	}
+
+	return c
 }

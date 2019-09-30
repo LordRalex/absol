@@ -1,4 +1,4 @@
-package mcf
+package alert
 
 import (
 	"encoding/xml"

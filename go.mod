@@ -1,4 +1,4 @@
-module github.com/LordRalex/absol
+module github.com/lordralex/absol
 
 go 1.12
 
@@ -8,7 +8,6 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/lordralex/absol v0.0.0-20190825013542-2c7982249c93
 	github.com/magiconair/properties v1.8.1
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pelletier/go-toml v1.4.0

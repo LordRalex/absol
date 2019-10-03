@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-var client = &http.Client{}
+var client = &http.Client{
+	Timeout: time.Second * 30,
+}
 
 var sites []*site
 

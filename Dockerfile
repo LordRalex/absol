@@ -1,10 +1,18 @@
-FROM golang:alpine
+###
+# Builder to compile our golang code
+###
+FROM golang:alpine AS builder
 
 WORKDIR /build
 COPY . .
 
-RUN apk add --no-cache curl git iputils bash \
-    && go install -v github.com/lordralex/absol \
-    && apk del curl git
+RUN go install -v
 
-CMD ["absol"]
+###
+# Now generate our smaller image
+###
+FROM alpine
+
+COPY --from=builder /go/bin/absol /go/bin/absol
+
+CMD ["/go/bin/absol"]

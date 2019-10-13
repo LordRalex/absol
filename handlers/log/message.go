@@ -1,10 +1,10 @@
 package log
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-var db *sql.DB
+var db *gorm.DB
 
 var lastAuditIds = make(map[string]string)
 var auditLastCheck sync.Mutex
@@ -87,7 +87,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 
 	logger.Debug().Printf("[%s] [%s] [%s#%s] [%s]", c.Name, mc.ID, mc.Author.Username, mc.Author.Discriminator, message)
 
-	stmt, err := db.Prepare("INSERT INTO messages (id, channel, sender, content) VALUES (?, ?, ?, ?);")
+	stmt, err := db.DB().Prepare("INSERT INTO messages (id, channel, sender, content) VALUES (?, ?, ?, ?);")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -147,7 +147,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 
 	logger.Debug().Printf("[EDIT] [%s] [%s] [%s]", c.Name, mc.ID, message)
 
-	stmt, err := db.Prepare("INSERT INTO edits (message_id, old_content) SELECT id, content FROM messages WHERE id =?")
+	stmt, err := db.DB().Prepare("INSERT INTO edits (message_id, old_content) SELECT id, content FROM messages WHERE id =?")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -157,7 +157,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 	}
 
-	stmt, err = db.Prepare("UPDATE messages SET content = ? WHERE id = ?")
+	stmt, err = db.DB().Prepare("UPDATE messages SET content = ? WHERE id = ?")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -229,7 +229,7 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		}
 	}()
 
-	stmt, err := db.Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
+	stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -261,7 +261,7 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 
 	for _, v := range mc.Messages {
 		go func(id string) {
-			stmt, err := db.Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
+			stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
 			if err != nil {
 				logger.Err().Print(err.Error())
 				return

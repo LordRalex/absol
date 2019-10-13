@@ -8,7 +8,7 @@ import (
 )
 
 var databaseConn *gorm.DB
-var locker sync.Locker
+var locker sync.Mutex
 
 func Get() (*gorm.DB, error) {
 	var err error

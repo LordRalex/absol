@@ -28,5 +28,9 @@ func load() (db *gorm.DB, err error) {
 		connString = "discord:discord@/discord"
 	}
 
-	return gorm.Open("mysql", connString)
+	db, err = gorm.Open("mysql", connString)
+	if db != nil {
+		db.LogMode(true)
+	}
+	returnl
 }

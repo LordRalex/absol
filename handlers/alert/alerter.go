@@ -2,40 +2,19 @@ package alert
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/spf13/viper"
+	"github.com/lordralex/absol/database"
+	"github.com/lordralex/absol/logger"
 	"net/http"
-	"strings"
 	"time"
 )
+
+var knownSites []*site
 
 var client = &http.Client{
 	Timeout: time.Second * 30,
 }
 
-var sites []*site
-
 func Schedule(d *discordgo.Session) {
-
-	viper.SetDefault("MCF_COUNT", 5)
-	viper.SetDefault("MCF_PERIOD", 2)
-
-	siteKeys := strings.Split(viper.GetString("SITES"), ";")
-
-	for _, v := range siteKeys {
-		sites = append(sites, &site{
-			SiteName:       v,
-			RSSUrl:         viper.GetString("SITES_" + v + "_RSS"),
-			AlertChannel:   strings.Split(viper.GetString("SITES_"+v+"_CHANNELS"), ";"),
-			AlertServer:    strings.Split(viper.GetString("SITES_"+v+"_SERVERS"), ";"),
-			Cookie:         viper.GetString("SITES_" + v + "_COOKIES_COBALTSESSION"),
-			Domain:         viper.GetString("SITES_" + v + "_DOMAIN"),
-			MaxErrors:      viper.GetInt("SITES_" + v + "_MAXERRORS"),
-			Period:         viper.GetInt("SITES_" + v + "_PERIOD"),
-			lastPingFailed: false,
-			silent:         false,
-		})
-	}
-
 	go func(ds *discordgo.Session) {
 		timer := time.NewTicker(time.Minute)
 
@@ -43,7 +22,8 @@ func Schedule(d *discordgo.Session) {
 			select {
 			case <-timer.C:
 				{
-					for _, v := range sites {
+					syncSites()
+					for _, v := range knownSites {
 						go func(s *site) {
 							s.runTick(ds)
 						}(v)
@@ -51,4 +31,58 @@ func Schedule(d *discordgo.Session) {
 				}}
 		}
 	}(d)
+}
+
+func syncSites() {
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Printf("Error getting DB connection: %s\n", err.Error())
+		return
+	}
+
+	dbSites := &sites{}
+	err = db.Find(dbSites).Error
+	if err != nil {
+		logger.Err().Printf("Error looking for new db sites: %s\n", err.Error())
+		return
+	}
+
+	for _, v := range *dbSites {
+		exists := false
+		for _, e := range knownSites {
+			if v.SiteName == e.SiteName {
+				e.AlertServer = v.AlertServer
+				e.RSSUrl = v.RSSUrl
+				e.AlertChannel = v.AlertChannel
+				e.Channels = v.Channels
+				e.AlertServer = v.AlertServer
+				e.Servers = v.Servers
+				e.Cookie = v.Cookie
+				e.Domain = v.Domain
+				e.MaxErrors = v.MaxErrors
+				e.Period = v.Period
+			}
+			exists = true
+			break
+		}
+
+		if !exists {
+			knownSites = append(knownSites, &v)
+		}
+	}
+
+	for i := 0; i < len(knownSites); i++ {
+		exists := false
+		for _, v := range *dbSites {
+			if v.SiteName == knownSites[i].SiteName {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			copy(knownSites[i:], knownSites[i+1:])
+			knownSites[len(knownSites)-1] = nil
+			knownSites = knownSites[:len(knownSites)-1]
+		}
+	}
 }

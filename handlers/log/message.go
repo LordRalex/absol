@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
-	"os"
+	"log"
 	"strings"
 	"sync"
 )
@@ -23,15 +24,10 @@ func RegisterCore(session *discordgo.Session) {
 
 	loggedServers = strings.Split(viper.GetString("LOGGED_SERVERS"), ";")
 
-	connString := viper.GetString("database")
-	if connString == "" {
-		connString = "discord:discord@/discord"
-	}
-
-	db, err = sql.Open("mysql", connString)
+	db, err = database.Get()
 	if err != nil {
-		logger.Err().Print(err.Error())
-		os.Exit(1)
+		log.Fatalf("Database connection failed: %s", err.Error())
+		return
 	}
 
 	session.AddHandler(OnMessageCreate)

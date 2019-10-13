@@ -18,6 +18,8 @@ type Channel struct {
 type Item struct {
 	XMLName     xml.Name `xml:"item"`
 	PublishDate Date     `xml:"pubDate"`
+	Title       string   `xml:"title"`
+	Description string   `xml:"description"`
 }
 
 type Date struct {

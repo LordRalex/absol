@@ -7,21 +7,27 @@ import (
 	"github.com/lordralex/absol/logger"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
 type site struct {
-	SiteName       string
-	RSSUrl         string
-	AlertChannel   []string
-	AlertServer    []string
-	Cookie         string
-	Domain         string
-	MaxErrors      int
-	Period         int
+	SiteName     string   `gorm:"name"`
+	RSSUrl       string   `gorm:"rss"`
+	AlertChannel []string `gorm:"-"`
+	Channels     string
+	AlertServer  []string `gorm:"-"`
+	Servers      string
+	Cookie       string `gorm:"cookie_cobaltsession"`
+	Domain       string
+	MaxErrors    int
+	Period       int
+
 	lastPingFailed bool
 	silent         bool
 }
+
+type sites []site
 
 func (s *site) runTick(ds *discordgo.Session) {
 	defer func() {
@@ -79,8 +85,6 @@ func (s *site) runTick(ds *discordgo.Session) {
 	if err != nil {
 		s.sendMessage(ds, fmt.Sprintf("Error pinging: %s", err.Error()))
 	}
-
-	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
 	counter := 0
 
 	if len(data.Channel.Item) == 0 {
@@ -88,7 +92,7 @@ func (s *site) runTick(ds *discordgo.Session) {
 	}
 
 	for _, e := range data.Channel.Item {
-		if e.PublishDate.After(cutoffTime) {
+		if s.isReportable(e) {
 			counter++
 		}
 	}
@@ -118,4 +122,16 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 			}
 		}
 	}
+}
+
+func (s *site) isReportable(data Item) bool {
+	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
+
+	return data.PublishDate.After(cutoffTime)
+}
+
+func (s *site) AfterFind() (err error) {
+	s.AlertChannel = strings.Split(s.Channels, ";")
+	s.AlertServer = strings.Split(s.Servers, ";")
+	return
 }

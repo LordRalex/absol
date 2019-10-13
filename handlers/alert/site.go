@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
 	"net/http"
 	"net/url"
@@ -126,8 +127,40 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 
 func (s *site) isReportable(data Item) bool {
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
+	if ! data.PublishDate.After(cutoffTime) {
+		return false
+	}
 
-	return data.PublishDate.After(cutoffTime)
+	//if database connection fails, assume we can report this since it's in the right time-range
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return true
+	}
+
+	stmt, err := db.DB().Prepare("SELECT COUNT(1) AS Matches FROM sites_ignored_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return true
+	}
+	defer stmt.Close()
+
+	results, err := stmt.Query(s.SiteName, data.Title, data.Description)
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return true
+	}
+	defer results.Close()
+
+	results.Next()
+	var count int
+	err = results.Scan(&count)
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return true
+	}
+
+	return count == 0
 }
 
 func (s *site) AfterFind() (err error) {

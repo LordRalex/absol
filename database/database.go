@@ -32,5 +32,5 @@ func load() (db *gorm.DB, err error) {
 	if db != nil {
 		db.LogMode(true)
 	}
-	returnl
+	return
 }

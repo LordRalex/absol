@@ -13,13 +13,13 @@ import (
 )
 
 type site struct {
-	SiteName     string   `gorm:"name"`
-	RSSUrl       string   `gorm:"rss"`
+	SiteName     string   `gorm:"column:name"`
+	RSSUrl       string   `gorm:"column:rss"`
 	AlertChannel []string `gorm:"-"`
 	Channels     string
 	AlertServer  []string `gorm:"-"`
 	Servers      string
-	Cookie       string `gorm:"cookie_cobaltsession"`
+	Cookie       string `gorm:"column:cookie_cobaltsession"`
 	Domain       string
 	MaxErrors    int
 	Period       int

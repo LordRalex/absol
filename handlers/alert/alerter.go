@@ -62,9 +62,8 @@ func syncSites() {
 				e.MaxErrors = v.MaxErrors
 				e.Period = v.Period
 				exists = true
+				break
 			}
-
-			break
 		}
 
 		if !exists {

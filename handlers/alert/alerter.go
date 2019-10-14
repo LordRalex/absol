@@ -61,13 +61,14 @@ func syncSites() {
 				e.Domain = v.Domain
 				e.MaxErrors = v.MaxErrors
 				e.Period = v.Period
+				exists = true
 			}
-			exists = true
+
 			break
 		}
 
 		if !exists {
-			knownSites = append(knownSites, &v)
+			knownSites = append(knownSites, v)
 		}
 	}
 
@@ -83,6 +84,7 @@ func syncSites() {
 			copy(knownSites[i:], knownSites[i+1:])
 			knownSites[len(knownSites)-1] = nil
 			knownSites = knownSites[:len(knownSites)-1]
+			i--
 		}
 	}
 }

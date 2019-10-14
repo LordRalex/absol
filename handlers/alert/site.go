@@ -28,7 +28,7 @@ type site struct {
 	silent         bool
 }
 
-type sites []site
+type sites []*site
 
 func (s *site) runTick(ds *discordgo.Session) {
 	defer func() {

@@ -59,8 +59,7 @@ func OnMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		{
 			twitch.RunCommand(ds, mc, c, cmd, args)
 		}
-	case "resume":
-	case "silent":
+	case "resume", "silent":
 		{
 			alert.RunCommand(ds, mc, c, cmd, args)
 		}

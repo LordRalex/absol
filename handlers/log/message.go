@@ -58,6 +58,10 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
+	if mc.GuildID == "" {
+		return
+	}
+
 	g := getGuild(ds, mc.GuildID)
 	if g == nil {
 		return

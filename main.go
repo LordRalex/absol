@@ -19,6 +19,7 @@ var Session, _ = discordgo.New()
 
 func init() {
 	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 }
 
 func main() {

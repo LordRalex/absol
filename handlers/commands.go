@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/handlers/alert"
 	"github.com/lordralex/absol/handlers/twitch"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
@@ -47,11 +48,6 @@ func OnMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		}
 	}
 
-	//only work with DMs
-	if c == nil || c.Type != discordgo.ChannelTypeDM {
-		return
-	}
-
 	msg := strings.TrimPrefix(mc.Message.Content, CommandPrefix)
 
 	parts := strings.Split(msg, " ")
@@ -62,6 +58,11 @@ func OnMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	case "twitchid":
 		{
 			twitch.RunCommand(ds, mc, c, cmd, args)
+		}
+	case "resume":
+	case "silent":
+		{
+			alert.RunCommand(ds, mc, c, cmd, args)
 		}
 	}
 }

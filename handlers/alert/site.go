@@ -15,6 +15,7 @@ import (
 type site struct {
 	SiteName     string   `gorm:"column:name"`
 	RSSUrl       string   `gorm:"column:rss"`
+	ElmahUrl     string   `gorm:"column:elmahUrl"`
 	AlertChannel []string `gorm:"-"`
 	Channels     string
 	AlertServer  []string `gorm:"-"`
@@ -113,7 +114,7 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 			if guild.Name == v {
 				for _, c := range guild.Channels {
 					if c.Name == s.AlertChannel[k] {
-						_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("[%s] %s", s.SiteName, msg))
+						_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
 						s.silent = true
 						time.AfterFunc(time.Minute*5, func() {
 							s.silent = false

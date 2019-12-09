@@ -38,10 +38,6 @@ func (s *site) runTick(ds *discordgo.Session) {
 		}
 	}()
 
-	if s.silent {
-		return
-	}
-
 	logger.Debug().Printf("Pinging %s", s.SiteName)
 
 	var err error
@@ -77,20 +73,23 @@ func (s *site) runTick(ds *discordgo.Session) {
 		}
 	}()
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != 200 && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("Error pinging: Status Code %s", response.Status))
+		return
 	}
 
 	data := &RootXML{}
 	err = xml.NewDecoder(response.Body).Decode(data)
 
-	if err != nil {
+	if err != nil && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("Error pinging: %s", err.Error()))
+		return
 	}
 	counter := 0
 
-	if len(data.Channel.Item) == 0 {
+	if len(data.Channel.Item) == 0 && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("Error pinging: RSS Log is empty"))
+		return
 	}
 
 	for _, e := range data.Channel.Item {
@@ -99,8 +98,23 @@ func (s *site) runTick(ds *discordgo.Session) {
 		}
 	}
 
-	if counter >= s.MaxErrors {
+	var importantErrors []string
+	for _, e := range data.Channel.Item {
+		if s.isImportantError(e) {
+			if importantErrors == nil {
+				importantErrors = []string{e.Title}
+			} else {
+				importantErrors = append(importantErrors, e.Title)
+			}
+		}
+	}
+	if importantErrors != nil && len(importantErrors) >= 0 {
+		s.sendMessage(ds, fmt.Sprintf("Important Errors: \n%s", strings.Join(importantErrors, "\n")))
+	}
+
+	if counter >= s.MaxErrors && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, s.Period))
+		return
 	}
 }
 
@@ -162,6 +176,38 @@ func (s *site) isReportable(data Item) bool {
 	}
 
 	return count == 0
+}
+
+func (s *site) isImportantError(data Item) bool {
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return false
+	}
+
+	stmt, err := db.DB().Prepare("SELECT COUNT(1) AS Matches FROM sites_important_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return false
+	}
+	defer stmt.Close()
+
+	results, err := stmt.Query(s.SiteName, data.Title, data.Description)
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return false
+	}
+	defer results.Close()
+
+	results.Next()
+	var count int
+	err = results.Scan(&count)
+	if err != nil {
+		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
+		return false
+	}
+
+	return count != 0
 }
 
 func (s *site) AfterFind() (err error) {

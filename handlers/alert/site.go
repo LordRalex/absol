@@ -59,7 +59,7 @@ func (s *site) runTick(ds *discordgo.Session) {
 
 	response, err := client.Do(req)
 	if err != nil {
-		if s.lastPingFailed {
+		if s.lastPingFailed && !s.silent{
 			s.sendMessage(ds, fmt.Sprintf("Error pinging: %s", err.Error()))
 			s.lastPingFailed = false
 		} else {
@@ -141,6 +141,10 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 }
 
 func (s *site) isReportable(data Item) bool {
+	if s.silent {
+		return false
+	}
+
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
 	if ! data.PublishDate.After(cutoffTime) {
 		return false

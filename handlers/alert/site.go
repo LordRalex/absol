@@ -179,6 +179,11 @@ func (s *site) isReportable(data Item) bool {
 }
 
 func (s *site) isImportantError(data Item) bool {
+	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
+	if ! data.PublishDate.After(cutoffTime) {
+		return false
+	}
+
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Error connecting to database: %s\n", err.Error())

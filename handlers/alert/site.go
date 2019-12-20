@@ -103,7 +103,11 @@ func (s *site) runTick(ds *discordgo.Session) {
 
 	if counter >= s.MaxErrors && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, s.Period))
-		return
+	}
+
+	for _, e := range data.Channel.Item {
+		if s.isLoggable(e) {
+		}
 	}
 }
 

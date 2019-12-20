@@ -2,6 +2,7 @@ package alert
 
 import (
 	"encoding/xml"
+	"strings"
 	"time"
 )
 
@@ -20,10 +21,16 @@ type Item struct {
 	PublishDate Date     `xml:"pubDate"`
 	Title       string   `xml:"title"`
 	Description string   `xml:"description"`
+	Link        RssLink  `xml:"link"`
+	Details     string   `xml:"-"`
 }
 
 type Date struct {
 	time.Time
+}
+
+type RssLink struct {
+	string
 }
 
 func (d *Date) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
@@ -38,5 +45,19 @@ func (d *Date) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 		return err
 	}
 	*d = Date{parse}
+	return nil
+}
+
+func (d *RssLink) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+	var v string
+	err := decoder.DecodeElement(&v, &start)
+	if err != nil {
+		return err
+	}
+
+	//HACK: Our elmah's don't really work with links...
+	v = strings.Replace(v, "rss/detail", "json", 1)
+
+	*d = RssLink{v}
 	return nil
 }

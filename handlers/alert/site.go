@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,27 +40,15 @@ func (s *site) runTick(ds *discordgo.Session) {
 	}()
 
 	logger.Debug().Printf("Pinging %s", s.SiteName)
-
-	var err error
-
-	req := &http.Request{}
-	req.URL, err = url.Parse(s.RSSUrl)
-
-	req.Header = http.Header{}
-	req.Method = "GET"
-
-	req.AddCookie(&http.Cookie{
-		Name:    "CobaltSession",
-		Value:   s.Cookie,
-		Path:    "/",
-		Domain:  s.Domain,
-		Expires: time.Now().Add(time.Hour * 24 * 365),
-		Secure:  true,
-	})
+	req, err := s.createRequest(s.RSSUrl)
+	if err != nil {
+		s.sendMessage(ds, fmt.Sprintf("Error pinging: %s", err.Error()))
+		return
+	}
 
 	response, err := client.Do(req)
 	if err != nil {
-		if s.lastPingFailed && !s.silent{
+		if s.lastPingFailed && !s.silent {
 			s.sendMessage(ds, fmt.Sprintf("Error pinging: %s", err.Error()))
 			s.lastPingFailed = false
 		} else {
@@ -219,8 +208,86 @@ func (s *site) isImportantError(data Item) bool {
 	return count != 0
 }
 
+func (s *site) isLoggable(data Item) bool {
+	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
+	if !data.PublishDate.After(cutoffTime) {
+		return false
+	}
+
+	if data.Title == "The wait operation timed out" {
+		//we want this one!
+		req, err := s.createRequest(data.Link.string)
+		if err != nil {
+			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
+			return false
+		}
+
+		response, err := client.Do(req)
+		if err != nil {
+			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
+			return false
+		}
+		defer func() {
+			if response != nil && response.Body != nil {
+				_ = response.Body.Close()
+			}
+		}()
+
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			logger.Err().Printf("Error reading body from timeout: %s\n", err.Error())
+			return false
+		}
+
+		db, err := database.Get()
+		if err != nil {
+			logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+			return false
+		}
+
+		stmt, err := db.DB().Prepare("INSERT INTO sites_timed_out (site, log) VALUES(?, ?)")
+		if err != nil {
+			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			return false
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Exec(s.SiteName, body)
+		if err != nil {
+			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			return false
+		}
+
+		return true
+	}
+
+	return false
+}
+
 func (s *site) AfterFind() (err error) {
 	s.AlertChannel = strings.Split(s.Channels, ";")
 	s.AlertServer = strings.Split(s.Servers, ";")
+	return
+}
+
+func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
+	req = &http.Request{}
+	req.URL, err = url.Parse(requestUrl)
+	if err != nil {
+		return
+	}
+
+	req.Header = http.Header{}
+	req.Method = "GET"
+
+	req.AddCookie(&http.Cookie{
+		Name:    "CobaltSession",
+		Value:   s.Cookie,
+		Path:    "/",
+		Domain:  s.Domain,
+		Expires: time.Now().Add(time.Hour * 24 * 365),
+		Secure:  true,
+	})
+
 	return
 }

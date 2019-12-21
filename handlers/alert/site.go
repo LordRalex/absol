@@ -1,14 +1,11 @@
 package alert
 
 import (
-	"bytes"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -246,9 +243,23 @@ func (s *site) isLoggable(data Item) bool {
 			return false
 		}
 
-		err = submitToElastic(body)
+		db, err := database.Get()
+		if err != nil {
+			logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+			return false
+		}
+
+		stmt, err := db.DB().Prepare("INSERT INTO sites_timed_out (site, log) VALUES(?, ?)")
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			return false
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Exec(s.SiteName, body)
+		if err != nil {
+			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			return false
 		}
 
 		return true
@@ -283,28 +294,4 @@ func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
 	})
 
 	return
-}
-
-func submitToElastic(data []byte) error {
-	es, err := http.NewRequest("POST", viper.GetString("ELASTIC_URL"), bytes.NewBuffer(data))
-	if err != nil {
-		return err
-	}
-	es.SetBasicAuth(viper.GetString("ELASTIC_USER"), viper.GetString("ELASTIC_PASS"))
-	es.Header.Set("Content-Type", "application/json")
-
-	response, err := client.Do(es)
-
-	defer func() {
-		if response != nil && response.Body != nil {
-			_ = response.Body.Close()
-		}
-	}()
-
-	if err == nil && response.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(response.Body)
-		err = errors.New(fmt.Sprintf("Failed to save log (%s): %s", response.Status, body))
-	}
-
-	return err
 }

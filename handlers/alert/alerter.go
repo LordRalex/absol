@@ -91,11 +91,11 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 					_, _ = ds.ChannelMessageSend(c.ID, "Failed to parse time duration: "+err.Error())
 				}
 			}
-			targetSite.silent = true
+			targetSite.fullyIgnore = true
 			go func(ts *site, duration time.Duration, chanId string) {
 				<-time.After(silentTime)
-				if targetSite.silent {
-					targetSite.silent = false
+				if targetSite.fullyIgnore {
+					targetSite.fullyIgnore = false
 					_, _ = ds.ChannelMessageSend(chanId, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
 				}
 			}(targetSite, silentTime, c.ID)

@@ -1,11 +1,15 @@
 package alert
 
 import (
+	"bytes"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -28,11 +32,16 @@ type site struct {
 
 	lastPingFailed bool
 	silent         bool
+	fullyIgnore    bool
 }
 
 type sites []*site
 
 func (s *site) runTick(ds *discordgo.Session) {
+	if s.fullyIgnore {
+		return
+	}
+
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Err().Printf("Error running site checker tick for %s: %v", s.SiteName, err)
@@ -239,6 +248,13 @@ func (s *site) isLoggable(data Item) bool {
 
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
+			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			return false
+		}
+
+		var data map[string]interface{}
+		err = json.Unmarshal(body, data)
+		if err != nil {
 			logger.Err().Printf("Error reading body from timeout: %s\n", err.Error())
 			return false
 		}
@@ -259,7 +275,11 @@ func (s *site) isLoggable(data Item) bool {
 		_, err = stmt.Exec(s.SiteName, body)
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
-			return false
+		}
+
+		err = submitToElastic(data)
+		if err != nil {
+			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
 
 		return true
@@ -294,4 +314,39 @@ func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
 	})
 
 	return
+}
+
+func submitToElastic(data map[string]interface{}) error {
+	delete(data, "cookies")
+	delete(data, "host")
+	serverVars := data["serverVariables"].(map[string]interface{})
+	delete(serverVars, "ALL_HTTP")
+	delete(serverVars, "ALL_RAW")
+	delete(serverVars, "HTTP_COOKIE")
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	es, err := http.NewRequest("POST", viper.GetString("ELASTIC_URL"), bytes.NewBuffer(encoded))
+	if err != nil {
+		return err
+	}
+	es.SetBasicAuth(viper.GetString("ELASTIC_USER"), viper.GetString("ELASTIC_PASS"))
+	es.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(es)
+
+	defer func() {
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
+	}()
+
+	if err == nil && response.StatusCode != 200 {
+		body, _ := ioutil.ReadAll(response.Body)
+		err = errors.New(fmt.Sprintf("Failed to save log (%s): %s", response.Status, body))
+	}
+
+	return err
 }

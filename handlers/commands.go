@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/handlers/alert"
+	"github.com/lordralex/absol/handlers/factoids"
 	"github.com/lordralex/absol/handlers/twitch"
 	"github.com/lordralex/absol/logger"
 	"github.com/spf13/viper"
@@ -62,6 +63,20 @@ func OnMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	case "resume", "silent":
 		{
 			alert.RunCommand(ds, mc, c, cmd, args)
+		}
+	case "f", "faq", "factoid":
+		{
+			factoids.RunCommand(ds, mc, c, cmd, args)
+		}
+	default:
+		{
+			//at this point, let's just go with it's a factoid
+			newargs := make([]string, len(args) + 1)
+			newargs[0] = cmd
+			for k, v := range args {
+				newargs[k+1] = v
+			}
+			factoids.RunCommand(ds, mc, c, cmd, newargs)
 		}
 	}
 }

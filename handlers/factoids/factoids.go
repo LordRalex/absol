@@ -62,8 +62,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 		msg = header + "Please refer to the below information:\n" + msg
 	}
 
-	_ = ds.ChannelMessageDelete(c.ID, mc.ID)
 	_, err = ds.ChannelMessageSend(c.ID, ">>> " + msg)
+	_ = ds.ChannelMessageDelete(c.ID, mc.ID)
 }
 
 type factoid struct {

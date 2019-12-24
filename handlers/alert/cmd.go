@@ -30,6 +30,7 @@ func ImportFromDatabase() {
 		err = json.NewDecoder(r).Decode(&m)
 		if err != nil {
 			logger.Err().Printf("Error decoding: %s\n", err.Error())
+			continue
 		}
 
 		id := uuid.NewV4().String()

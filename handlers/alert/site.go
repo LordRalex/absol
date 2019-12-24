@@ -90,14 +90,14 @@ func (s *site) runTick(ds *discordgo.Session) {
 		return
 	}
 
+	var importantErrors []string
 	for _, e := range data.Channel.Item {
+		e.ParseId()
+
 		if s.isReportable(e) {
 			counter++
 		}
-	}
 
-	var importantErrors []string
-	for _, e := range data.Channel.Item {
 		if s.isImportantError(e) {
 			if importantErrors == nil {
 				importantErrors = []string{e.Title}
@@ -105,18 +105,16 @@ func (s *site) runTick(ds *discordgo.Session) {
 				importantErrors = append(importantErrors, e.Title)
 			}
 		}
+
+		s.isLoggable(e)
 	}
+
 	if importantErrors != nil && len(importantErrors) >= 0 {
 		s.sendMessage(ds, fmt.Sprintf("Important Errors: \n%s", strings.Join(importantErrors, "\n")))
 	}
 
 	if counter >= s.MaxErrors && !s.silent {
 		s.sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, s.Period))
-	}
-
-	for _, e := range data.Channel.Item {
-		if s.isLoggable(e) {
-		}
 	}
 }
 
@@ -221,15 +219,15 @@ func (s *site) isImportantError(data Item) bool {
 	return count != 0
 }
 
-func (s *site) isLoggable(data Item) bool {
+func (s *site) isLoggable(item Item) bool {
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
-	if !data.PublishDate.After(cutoffTime) {
+	if !item.PublishDate.After(cutoffTime) {
 		return false
 	}
 
-	if data.Title == "The wait operation timed out" {
+	if item.Title == "The wait operation timed out" {
 		//we want this one!
-		req, err := s.createRequest(data.Link.string)
+		req, err := s.createRequest(item.Link.string)
 		if err != nil {
 			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
 			return false
@@ -277,7 +275,7 @@ func (s *site) isLoggable(data Item) bool {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
 
-		err = submitToElastic(data)
+		err = submitToElastic(item.Id, data)
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
@@ -316,7 +314,7 @@ func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
 	return
 }
 
-func submitToElastic(data map[string]interface{}) error {
+func submitToElastic(id string, data map[string]interface{}) error {
 	delete(data, "cookies")
 	delete(data, "host")
 	serverVars := data["serverVariables"].(map[string]interface{})
@@ -328,7 +326,7 @@ func submitToElastic(data map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	es, err := http.NewRequest("POST", viper.GetString("ELASTIC_URL"), bytes.NewBuffer(encoded))
+	es, err := http.NewRequest("PUT", viper.GetString("ELASTIC_URL") + "/_doc/" + id, bytes.NewBuffer(encoded))
 	if err != nil {
 		return err
 	}
@@ -343,7 +341,7 @@ func submitToElastic(data map[string]interface{}) error {
 		}
 	}()
 
-	if err == nil && response.StatusCode != 200 {
+	if err == nil && response.StatusCode != 201 {
 		body, _ := ioutil.ReadAll(response.Body)
 		err = errors.New(fmt.Sprintf("Failed to save log (%s): %s", response.Status, body))
 	}

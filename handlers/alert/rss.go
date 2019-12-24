@@ -23,6 +23,7 @@ type Item struct {
 	Description string   `xml:"description"`
 	Link        RssLink  `xml:"link"`
 	Details     string   `xml:"-"`
+	Id          string   `xml:"-"`
 }
 
 type Date struct {
@@ -60,4 +61,10 @@ func (d *RssLink) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 
 	*d = RssLink{v}
 	return nil
+}
+
+func (i *Item) ParseId() {
+	v := i.Link.string
+	id := v[len(v) - 64:]
+	i.Id = id
 }

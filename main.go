@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/handlers"
@@ -17,12 +18,23 @@ import (
 
 var Session, _ = discordgo.New()
 
+var importToEs bool
+
 func init() {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	flag.BoolVar(&importToEs, "importES", false, "")
 }
 
 func main() {
+	flag.Parse()
+
+	if importToEs {
+		alert.ImportFromDatabase()
+		return
+	}
+
 	token := viper.GetString("discord_token")
 
 	if token == "" {

@@ -251,7 +251,7 @@ func (s *site) isLoggable(item Item) bool {
 		}
 
 		var data map[string]interface{}
-		err = json.Unmarshal(body, data)
+		err = json.Unmarshal(body, &data)
 		if err != nil {
 			logger.Err().Printf("Error reading body from timeout: %s\n", err.Error())
 			return false

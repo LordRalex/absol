@@ -31,26 +31,18 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	}
 
 	var data []hjt
-	err = db.Find(&data).Where("? LIKE CONCAT('%', LOWER(name) ,'%')", content).Error
+	var values []string
+	err = db.Find(&data).Where("? LIKE CONCAT('%', LOWER(name) ,'%')", content).Pluck("value", &values).Error
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
 		return
 	}
 
-	var result strings.Builder
-
-	for _, value := range data {
-		if result.Len() != 0 {
-			result.WriteString(", ")
-		}
-		result.WriteString(value.Value)
-	}
-
-	if result.Len() == 0 {
+	if len(values) == 0 {
 		_, err = ds.ChannelMessageSend(c.ID, "No matches found")
 	} else {
-		_, err = ds.ChannelMessageSend(c.ID, result.String())
+		_, err = ds.ChannelMessageSend(c.ID, strings.Join(values, ", "))
 	}
 }
 

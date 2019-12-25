@@ -31,7 +31,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	}
 
 	var data []hjt
-	err = db.Find(&data).Error
+	err = db.Find(&data).Where("? LIKE CONCAT('%', LOWER(name) ,'%')", content).Error
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
@@ -41,12 +41,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	var result strings.Builder
 
 	for _, value := range data {
-		if strings.Contains(content, strings.ToLower(value.Name)) {
-			if result.Len() != 0 {
-				result.WriteString(", ")
-			}
-			result.WriteString(value.Value)
+		if result.Len() != 0 {
+			result.WriteString(", ")
 		}
+		result.WriteString(value.Value)
 	}
 
 	if result.Len() == 0 {

@@ -344,7 +344,7 @@ func submitToElastic(id string, data map[string]interface{}) error {
 		}
 	}()
 
-	if err == nil && response.StatusCode != 201 {
+	if err == nil && !(response.StatusCode == 201 || response.StatusCode == 200) {
 		body, _ := ioutil.ReadAll(response.Body)
 		err = errors.New(fmt.Sprintf("Failed to save log (%s): %s", response.Status, body))
 	}

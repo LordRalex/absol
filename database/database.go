@@ -19,8 +19,11 @@ func Get() (*gorm.DB, error) {
 	if databaseConn == nil {
 		databaseConn, err = load()
 	}
+	if databaseConn == nil {
+		databaseConn, err = load()
+	}
 
-	if databaseConn != nil {
+	if err == nil && databaseConn != nil {
 		databaseConn.DB().SetConnMaxLifetime(time.Second * 10)
 	}
 

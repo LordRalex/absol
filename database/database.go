@@ -5,6 +5,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/spf13/viper"
 	"sync"
+	"time"
 )
 
 var databaseConn *gorm.DB
@@ -17,6 +18,10 @@ func Get() (*gorm.DB, error) {
 	defer locker.Unlock()
 	if databaseConn == nil {
 		databaseConn, err = load()
+	}
+
+	if databaseConn != nil {
+		databaseConn.DB().SetConnMaxLifetime(time.Second * 10)
 	}
 
 	return databaseConn, err

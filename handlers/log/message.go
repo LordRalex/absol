@@ -27,7 +27,6 @@ func RegisterCore(session *discordgo.Session) {
 	db, err = database.Get()
 	if err != nil {
 		log.Fatalf("Database connection failed: %s", err.Error())
-		return
 	}
 
 	session.AddHandler(OnMessageCreate)

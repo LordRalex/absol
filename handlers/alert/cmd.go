@@ -38,7 +38,7 @@ func ImportFromDatabase() {
 			continue
 		}
 
-		err = submitToElastic(d.Id, m)
+		err = submitToElastic(d.Identifier, m)
 		if err != nil {
 			logger.Err().Printf("Error sending to ES: %s\n", err.Error())
 		}
@@ -46,6 +46,6 @@ func ImportFromDatabase() {
 }
 
 type log struct {
-	Id string `gorm:"identifier"`
+	Identifier string `gorm:"identifier"`
 	Log string `gorm:"log"`
 }

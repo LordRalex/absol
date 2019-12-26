@@ -32,9 +32,9 @@ func init() {
 		debugOut = os.Stdout
 	}
 
-	errorLogger = log.New(errorOut, "[ERROR] ", log.Flags())
+	errorLogger = log.New(errorOut, "[ERROR] ", log.Flags()|log.Lshortfile)
 	outLogger = log.New(output, "[INFO] ", log.Flags())
-	debugLogger = log.New(debugOut, "[DEBUG] ", log.Flags())
+	debugLogger = log.New(debugOut, "[DEBUG] ", log.Flags()|log.Lshortfile)
 }
 
 func Close() error {

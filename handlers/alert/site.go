@@ -321,10 +321,21 @@ func submitToElastic(id string, data map[string]interface{}) error {
 		delete(serverVars, "ALL_HTTP")
 		delete(serverVars, "ALL_RAW")
 		delete(serverVars, "HTTP_COOKIE")
+		delete(serverVars, "AUTH_PASSWORD")
+
+		forwards := serverVars["HTTP_X_FORWARDED_FOR"]
+		if ips, ok := forwards.(string); ok && ips != "" {
+			ipList := strings.Split(ips, ",")
+			for k, v := range ipList {
+				ipList[k] = strings.TrimSpace(v)
+			}
+			serverVars["HTTP_X_FORWARDED_FOR"] = ipList
+		} else {
+			delete(serverVars, "HTTP_X_FORWARDED_FOR")
+		}
 	}
 	delete(data, "webHostHtmlMessage")
 	delete(data, "HTTP_COOKIE")
-	delete(data, "AUTH_PASSWORD")
 
 	//convert query string to a standard string isntead
 	qs := data["queryString"]
@@ -339,17 +350,6 @@ func submitToElastic(id string, data map[string]interface{}) error {
 		}
 	} else {
 		delete(data, "queryString")
-	}
-
-	forwards := data["HTTP_X_FORWARDED_FOR"]
-	if ips, ok := forwards.(string); ok && ips != "" {
-		ipList := strings.Split(ips, ",")
-		for k, v := range ipList {
-			ipList[k] = strings.TrimSpace(v)
-		}
-		data["HTTP_X_FORWARDED_FOR"] = ipList
-	} else {
-		delete(data, "HTTP_X_FORWARDED_FOR")
 	}
 
 	encoded, err := json.Marshal(data)

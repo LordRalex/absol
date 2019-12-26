@@ -11,8 +11,10 @@ RUN go install -v
 ###
 # Now generate our smaller image
 ###
-FROM alpine
+FROM jfloff/alpine-python
 
+RUN pip install mcstatus
 COPY --from=builder /go/bin/absol /go/bin/absol
+COPY --from=builder /build/handlers/mcping/mcping.py /go/bin/mcping.py
 
 CMD ["/go/bin/absol"]

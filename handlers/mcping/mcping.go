@@ -13,7 +13,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 
 	server := args[0]
 
-	pythonCmd := exec.Command("python", "handlers/mcping/mcping.py", server)
+	pythonCmd := exec.Command("python", "mcping.py", server)
 	out, err := pythonCmd.Output()
 
 	if err != nil {

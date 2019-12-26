@@ -223,7 +223,7 @@ func (s *site) isLoggable(item Item) bool {
 		return false
 	}
 
-	if item.Title == "The wait operation timed out" {
+	//if item.Title == "The wait operation timed out" {
 		//we want this one!
 		req, err := s.createRequest(item.Link.Link)
 		if err != nil {
@@ -261,14 +261,14 @@ func (s *site) isLoggable(item Item) bool {
 			return false
 		}
 
-		stmt, err := db.DB().Prepare("INSERT INTO sites_timed_out (site, log) VALUES(?, ?)")
+		stmt, err := db.DB().Prepare("INSERT INTO sites_timed_out (site, identifier, log) VALUES(?, ?, ?)")
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 			return false
 		}
 		defer stmt.Close()
 
-		_, err = stmt.Exec(s.SiteName, body)
+		_, err = stmt.Exec(s.SiteName, item.Link.Id, body)
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
@@ -279,9 +279,9 @@ func (s *site) isLoggable(item Item) bool {
 		}
 
 		return true
-	}
+	//}
 
-	return false
+	//return false
 }
 
 func (s *site) AfterFind() (err error) {
@@ -324,12 +324,26 @@ func submitToElastic(id string, data map[string]interface{}) error {
 	}
 	delete(data, "webHostHtmlMessage")
 	delete(data, "HTTP_COOKIE")
+	delete(data, "AUTH_PASSWORD")
+
+	//convert query string to a standard string isntead
+	qs := data["queryString"]
+	if qs != nil {
+		d, err := json.Marshal(qs)
+		if err != nil {
+			logger.Err().Printf("Failed to convert query string to json; %s\n", err.Error())
+			data["queryString"] = ""
+		} else {
+			queryString := bytes.NewBuffer(d).String()
+			data["queryString"] = queryString
+		}
+	}
 
 	encoded, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	es, err := http.NewRequest("PUT", viper.GetString("ELASTIC_URL") + "/_doc/" + id, bytes.NewBuffer(encoded))
+	es, err := http.NewRequest("PUT", viper.GetString("ELASTIC_URL")+"/_doc/"+id, bytes.NewBuffer(encoded))
 	if err != nil {
 		return err
 	}

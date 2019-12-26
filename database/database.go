@@ -30,6 +30,12 @@ func Get() (*gorm.DB, error) {
 	return databaseConn, err
 }
 
+func Close() {
+	if databaseConn != nil {
+		_ = databaseConn.Close()
+	}
+}
+
 func load() (db *gorm.DB, err error) {
 	connString := viper.GetString("database")
 	if connString == "" {

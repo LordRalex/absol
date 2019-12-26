@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/handlers"
 	"github.com/lordralex/absol/handlers/alert"
 	"github.com/lordralex/absol/handlers/log"
@@ -44,6 +45,15 @@ func main() {
 		fmt.Printf("Using token: %s\n", token)
 	}
 
+	defer func() {
+		err := logger.Close()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error closing logger: %s", err.Error())
+		}
+	}()
+
+	defer database.Close()
+
 	OpenConnection(token)
 
 	alert.Schedule(Session)
@@ -57,13 +67,6 @@ func main() {
 
 	// Clean up
 	_ = Session.Close()
-
-	defer func() {
-		err := logger.Close()
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error closing logger: %s", err.Error())
-		}
-	}()
 }
 
 func OpenConnection(token string) {

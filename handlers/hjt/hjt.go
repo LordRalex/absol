@@ -30,9 +30,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 		return
 	}
 
-	var data []hjt
 	var values []string
-	err = db.Find(&data).Where("? LIKE CONCAT('%', LOWER(name) ,'%')", content).Pluck("value", &values).Error
+	err = db.Table("hjt").Where("? LIKE CONCAT('%', LOWER(name) ,'%')", content).Pluck("value", &values).Error
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
@@ -59,13 +58,4 @@ func readFromUrlAsLowercase(url string) (string, error) {
 		return "", err
 	}
 	return strings.ToLower(string(data)), nil
-}
-
-type hjt struct {
-	Name  string `gorm:"name"`
-	Value string `gorm:"value"`
-}
-
-func (hjt) TableName() string {
-	return "hjt"
 }

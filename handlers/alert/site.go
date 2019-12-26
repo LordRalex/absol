@@ -92,8 +92,6 @@ func (s *site) runTick(ds *discordgo.Session) {
 
 	var importantErrors []string
 	for _, e := range data.Channel.Item {
-		e.ParseId()
-
 		if s.isReportable(e) {
 			counter++
 		}
@@ -227,7 +225,7 @@ func (s *site) isLoggable(item Item) bool {
 
 	if item.Title == "The wait operation timed out" {
 		//we want this one!
-		req, err := s.createRequest(item.Link.string)
+		req, err := s.createRequest(item.Link.Link)
 		if err != nil {
 			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
 			return false
@@ -275,7 +273,7 @@ func (s *site) isLoggable(item Item) bool {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
 
-		err = submitToElastic(item.Id, data)
+		err = submitToElastic(item.Link.Id, data)
 		if err != nil {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}

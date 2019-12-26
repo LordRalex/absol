@@ -23,7 +23,6 @@ type Item struct {
 	Description string   `xml:"description"`
 	Link        RssLink  `xml:"link"`
 	Details     string   `xml:"-"`
-	Id          string   `xml:"-"`
 }
 
 type Date struct {
@@ -31,7 +30,8 @@ type Date struct {
 }
 
 type RssLink struct {
-	string
+	Link string
+	Id string
 }
 
 func (d *Date) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
@@ -59,12 +59,6 @@ func (d *RssLink) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 	//HACK: Our elmah's don't really work with links...
 	v = strings.Replace(v, "rss/detail", "json", 1)
 
-	*d = RssLink{v}
+	*d = RssLink{Link: v, Id: v[len(v) - 36:]}
 	return nil
-}
-
-func (i *Item) ParseId() {
-	v := i.Link.string
-	id := v[len(v) - 64:]
-	i.Id = id
 }

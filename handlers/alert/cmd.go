@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/lordralex/absol/database"
 	"github.com/lordralex/absol/logger"
-	"github.com/satori/go.uuid"
 	"strings"
 )
 
@@ -15,13 +14,13 @@ func ImportFromDatabase() {
 		return
 	}
 
-	var data []string
-	err = db.Table("sites_timed_out").Pluck("log", &data).Error
+	var data []log
+	err = db.Table("sites_timed_out").Find(&data).Error
 	if err != nil {
 		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 
 		//try it again
-		err = db.Table("sites_timed_out").Pluck("log", &data).Error
+		err = db.Table("sites_timed_out").Find(&data).Error
 		if err != nil {
 			logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 			return
@@ -29,7 +28,7 @@ func ImportFromDatabase() {
 	}
 
 	for _, d := range data {
-		r := strings.NewReader(d)
+		r := strings.NewReader(d.Log)
 
 		var m map[string]interface{}
 
@@ -39,10 +38,14 @@ func ImportFromDatabase() {
 			continue
 		}
 
-		id := uuid.NewV4().String()
-		err = submitToElastic(id, m)
+		err = submitToElastic(d.Id, m)
 		if err != nil {
 			logger.Err().Printf("Error sending to ES: %s\n", err.Error())
 		}
 	}
+}
+
+type log struct {
+	Id string `gorm:"identifier"`
+	Log string `gorm:"log"`
 }

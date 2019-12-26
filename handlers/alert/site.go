@@ -332,11 +332,24 @@ func submitToElastic(id string, data map[string]interface{}) error {
 		d, err := json.Marshal(qs)
 		if err != nil {
 			logger.Err().Printf("Failed to convert query string to json; %s\n", err.Error())
-			data["queryString"] = ""
+			delete(data, "queryString")
 		} else {
 			queryString := bytes.NewBuffer(d).String()
 			data["queryString"] = queryString
 		}
+	} else {
+		delete(data, "queryString")
+	}
+
+	forwards := data["HTTP_X_FORWARDED_FOR"]
+	if ips, ok := forwards.(string); ok && ips != "" {
+		ipList := strings.Split(ips, ",")
+		for k, v := range ipList {
+			ipList[k] = strings.TrimSpace(v)
+		}
+		data["HTTP_X_FORWARDED_FOR"] = ipList
+	} else {
+		delete(data, "HTTP_X_FORWARDED_FOR")
 	}
 
 	encoded, err := json.Marshal(data)

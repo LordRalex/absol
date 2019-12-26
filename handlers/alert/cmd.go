@@ -19,7 +19,13 @@ func ImportFromDatabase() {
 	err = db.Table("sites_timed_out").Pluck("log", &data).Error
 	if err != nil {
 		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
-		return
+
+		//try it again
+		err = db.Table("sites_timed_out").Pluck("log", &data).Error
+		if err != nil {
+			logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+			return
+		}
 	}
 
 	for _, d := range data {

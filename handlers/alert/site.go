@@ -315,12 +315,15 @@ func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
 func submitToElastic(id string, data map[string]interface{}) error {
 	delete(data, "cookies")
 	delete(data, "host")
+	delete(data, "form")
 	if data["serverVariables"] != nil {
 		serverVars := data["serverVariables"].(map[string]interface{})
 		delete(serverVars, "ALL_HTTP")
 		delete(serverVars, "ALL_RAW")
 		delete(serverVars, "HTTP_COOKIE")
 	}
+	delete(data, "webHostHtmlMessage")
+	delete(data, "HTTP_COOKIE")
 
 	encoded, err := json.Marshal(data)
 	if err != nil {

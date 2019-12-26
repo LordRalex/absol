@@ -11,7 +11,7 @@ RUN go install -v
 ###
 # Now generate our smaller image
 ###
-FROM jfloff/alpine-python
+FROM python:3-alpine
 
 RUN pip install mcstatus
 COPY --from=builder /go/bin/absol /go/bin/absol

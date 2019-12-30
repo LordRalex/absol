@@ -3,21 +3,37 @@ package factoids
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jinzhu/gorm"
-	"github.com/lordralex/absol/database"
-	"github.com/lordralex/absol/logger"
+	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/core/database"
 	"strings"
 )
 
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo.Channel, cmd string, args []string) {
+type Module struct {
+	api.Module
+}
+
+func (*Module) Load(ds *discordgo.Session) {
+	api.RegisterCommand("", RunCommand)
+	api.RegisterCommand("f", RunCommand)
+	api.RegisterCommand("factoid", RunCommand)
+}
+
+func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
 	if len(args) == 0 {
 		return
 	}
 
-	factoidName := args[0]
+	var factoidName string
+	if cmd == "" {
+		factoidName = cmd
+	} else {
+		factoidName = args[0]
+	}
 
 	db, err := database.Get()
 	if err != nil {
-		_, err = ds.ChannelMessageSend(c.ID, "Failed to connect to database")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		return
 	}
@@ -27,7 +43,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	err = db.Where("name = ?", factoidName).First(&data).Error
 
 	if err != nil && gorm.IsRecordNotFoundError(err) {
-		_, err = ds.ChannelMessageSend(c.ID, "No factoid with the given name was found")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "No factoid with the given name was found")
 		return
 	} else if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
@@ -62,8 +78,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 		msg = header + "Please refer to the below information:\n" + msg
 	}
 
-	_, err = ds.ChannelMessageSend(c.ID, ">>> " + msg)
-	_ = ds.ChannelMessageDelete(c.ID, mc.ID)
+	_, err = ds.ChannelMessageSend(mc.ChannelID, ">>> "+msg)
+	_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 }
 
 type factoid struct {

@@ -1,15 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"github.com/lordralex/absol/database"
-	"github.com/lordralex/absol/handlers"
-	"github.com/lordralex/absol/handlers/alert"
-	"github.com/lordralex/absol/handlers/log"
-	"github.com/lordralex/absol/handlers/servers"
-	"github.com/lordralex/absol/logger"
+	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
@@ -17,24 +12,13 @@ import (
 	"syscall"
 )
 
-var Session, _ = discordgo.New()
+var Session *discordgo.Session
 
-var importToEs bool
-
-func init() {
+func main() {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	flag.BoolVar(&importToEs, "importES", false, "")
-}
-
-func main() {
-	flag.Parse()
-
-	if importToEs {
-		alert.ImportFromDatabase()
-		return
-	}
+	modules := os.Args[1:]
 
 	token := viper.GetString("discord_token")
 
@@ -54,10 +38,13 @@ func main() {
 
 	defer database.Close()
 
-	OpenConnection(token)
+	Session, _ = discordgo.New()
 
-	alert.Schedule(Session)
-	servers.Schedule(Session)
+	if len(modules) > 0 {
+		LoadModule(modules)
+	}
+
+	OpenConnection(token)
 
 	// Wait for a CTRL-C
 	fmt.Println(`Now running. Press CTRL-C to exit.`)
@@ -75,8 +62,7 @@ func OpenConnection(token string) {
 	}
 	Session.Token = token
 
-	log.RegisterCore(Session)
-	handlers.RegisterCommands(Session)
+	EnableCommands(Session)
 
 	err := Session.Open()
 	if err != nil {

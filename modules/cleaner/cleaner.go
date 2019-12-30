@@ -1,8 +1,9 @@
-package servers
+package cleaner
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/lordralex/absol/logger"
+	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
 	"strings"
 	"time"
@@ -10,7 +11,11 @@ import (
 
 const PostDelay = -1 * time.Hour * 24
 
-func Schedule(d *discordgo.Session) {
+type Module struct {
+	api.Module
+}
+
+func (c *Module) Load(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
 		runTick(ds)
 

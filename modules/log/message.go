@@ -5,8 +5,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/lordralex/absol/database"
-	"github.com/lordralex/absol/logger"
+	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
 	"log"
 	"strings"
@@ -19,7 +20,11 @@ var lastAuditIds = make(map[string]string)
 var auditLastCheck sync.Mutex
 var loggedServers []string
 
-func RegisterCore(session *discordgo.Session) {
+type Module struct {
+	api.Module
+}
+
+func (*Module) Load(session *discordgo.Session) {
 	var err error
 
 	loggedServers = strings.Split(viper.GetString("LOGGED_SERVERS"), ";")

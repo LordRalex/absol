@@ -6,13 +6,14 @@ FROM golang:alpine AS builder
 WORKDIR /build
 COPY . .
 
-RUN go install -v
+RUN go build -o absol -v github.com/lordralex/absol/core
 
 ###
 # Now generate our smaller image
 ###
 FROM alpine
 
-COPY --from=builder /go/bin/absol /go/bin/absol
+COPY --from=builder /build/absol /go/bin/absol
 
-CMD ["/go/bin/absol"]
+ENTRYPOINT ["/go/bin/absol"]
+CMD ["alert", "cleaner", "factoids", "log", "twitch"]

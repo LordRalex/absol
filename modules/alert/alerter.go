@@ -3,8 +3,9 @@ package alert
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"github.com/lordralex/absol/database"
-	"github.com/lordralex/absol/logger"
+	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
 	"net/http"
 	"strings"
@@ -17,7 +18,11 @@ var client = &http.Client{
 	Timeout: time.Second * 30,
 }
 
-func Schedule(d *discordgo.Session) {
+type Module struct {
+	api.Module
+}
+
+func (m *Module) Load(d *discordgo.Session) {
 	go func(ds *discordgo.Session) {
 		timer := time.NewTicker(time.Minute)
 
@@ -34,14 +39,12 @@ func Schedule(d *discordgo.Session) {
 				}}
 		}
 	}(d)
+
+	api.RegisterCommand("silent", RunCommand)
+	api.RegisterCommand("resume", RunCommand)
 }
 
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo.Channel, cmd string, args []string) {
-	//do not run when in DMs
-	if c == nil || c.Type == discordgo.ChannelTypeDM {
-		return
-	}
-
+func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
 	//only permit usage of this command in certain servers
 	allowed := viper.GetString("alerter.server")
 	guild, err := ds.State.Guild(mc.GuildID)
@@ -60,9 +63,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 
 	if len(args) == 0 {
 		if cmd == "silent" {
-			_, _ = ds.ChannelMessageSend(c.ID, "Usage: silent <sitename> [duration]")
+			_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: silent <sitename> [duration]")
 		} else if cmd == "resume" {
-			_, _ = ds.ChannelMessageSend(c.ID, "Usage: resume <sitename>")
+			_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: resume <sitename>")
 		}
 		return
 	}
@@ -77,7 +80,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 	}
 
 	if targetSite == nil {
-		_, _ = ds.ChannelMessageSend(c.ID, "Usage: No site with given name")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: No site with given name")
 		return
 	}
 
@@ -88,7 +91,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 			if len(args) == 2 {
 				silentTime, err = time.ParseDuration(args[1])
 				if err != nil {
-					_, _ = ds.ChannelMessageSend(c.ID, "Failed to parse time duration: "+err.Error())
+					_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to parse time duration: "+err.Error())
 				}
 			}
 			targetSite.fullyIgnore = true
@@ -98,15 +101,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, c *discordgo
 					targetSite.fullyIgnore = false
 					_, _ = ds.ChannelMessageSend(chanId, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
 				}
-			}(targetSite, silentTime, c.ID)
+			}(targetSite, silentTime, mc.ChannelID)
 
-			_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("Will not report errors from %s for %s", targetSite.SiteName, silentTime.String()))
+			_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Will not report errors from %s for %s", targetSite.SiteName, silentTime.String()))
 			break
 		}
 	case "resume":
 		{
 			targetSite.silent = false
-			_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
+			_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
 			break
 		}
 	}

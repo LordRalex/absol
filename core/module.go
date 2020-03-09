@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/lordralex/absol/modules/alert"
@@ -13,7 +14,7 @@ import (
 
 var loadedModules = make(map[string]api.Module, 0)
 
-func LoadModule(modules []string) {
+func LoadModule(ds *discordgo.Session, modules []string) {
 	for _, v := range modules {
 		logger.Out().Printf("Loading %s\n", v)
 		switch strings.ToLower(v) {
@@ -32,7 +33,8 @@ func LoadModule(modules []string) {
 		}
 	}
 
-	for k, _ := range loadedModules {
+	for k, v := range loadedModules {
+		v.Load(ds)
 		logger.Out().Printf("Loaded %s\n", k)
 	}
 }

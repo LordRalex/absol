@@ -41,7 +41,7 @@ func main() {
 	Session, _ = discordgo.New()
 
 	if len(modules) > 0 {
-		LoadModule(modules)
+		LoadModule(Session, modules)
 	}
 
 	OpenConnection(token)

@@ -25,6 +25,8 @@ func Get() (*gorm.DB, error) {
 
 	if err == nil && databaseConn != nil {
 		databaseConn.DB().SetConnMaxLifetime(time.Second * 10)
+		databaseConn.DB().SetMaxIdleConns(0)
+		databaseConn.DB().SetMaxOpenConns(10)
 	}
 
 	return databaseConn, err

@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
-	"log"
 	"strings"
 	"sync"
 )
-
-var db *gorm.DB
 
 var lastAuditIds = make(map[string]string)
 var auditLastCheck sync.Mutex
@@ -25,14 +21,7 @@ type Module struct {
 }
 
 func (*Module) Load(session *discordgo.Session) {
-	var err error
-
 	loggedServers = strings.Split(viper.GetString("LOGGED_SERVERS"), ";")
-
-	db, err = database.Get()
-	if err != nil {
-		log.Fatalf("Database connection failed: %s", err.Error())
-	}
 
 	session.AddHandler(OnMessageCreate)
 	session.AddHandler(OnMessageDelete)
@@ -95,6 +84,12 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 
 	logger.Debug().Printf("[%s] [%s] [%s#%s] [%s]", c.Name, mc.ID, mc.Author.Username, mc.Author.Discriminator, message)
 
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+
 	stmt, err := db.DB().Prepare("INSERT INTO messages (id, channel, sender, content) VALUES (?, ?, ?, ?);")
 	if err != nil {
 		logger.Err().Print(err.Error())
@@ -154,6 +149,12 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 	}
 
 	logger.Debug().Printf("[EDIT] [%s] [%s] [%s]", c.Name, mc.ID, message)
+
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
 
 	stmt, err := db.DB().Prepare("INSERT INTO edits (message_id, old_content) SELECT id, content FROM messages WHERE id =?")
 	if err != nil {
@@ -237,6 +238,12 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		}
 	}()
 
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+
 	stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
 	if err != nil {
 		logger.Err().Print(err.Error())
@@ -267,18 +274,22 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 
 	logger.Debug().Printf("[DELETE-BULK] [%s]", mc.Messages)
 
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+
+	stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
 	for _, v := range mc.Messages {
-		go func(id string) {
-			stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
-			if err != nil {
-				logger.Err().Print(err.Error())
-				return
-			}
-			_, err = stmt.Exec(id)
-			if err != nil {
-				logger.Err().Print(err.Error())
-			}
-		}(v)
+		_, err = stmt.Exec(v)
+		if err != nil {
+			logger.Err().Print(err.Error())
+		}
 	}
 }
 

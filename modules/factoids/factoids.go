@@ -33,7 +33,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	db, err := database.Get()
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		return
 	}

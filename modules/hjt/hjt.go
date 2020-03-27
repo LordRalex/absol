@@ -26,14 +26,13 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	content, err := readFromUrlAsLowercase(pasteLink)
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ID, "Invalid URL")
-		logger.Debug().Printf("Invalid url: %s\n%s", pasteLink, err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Invalid URL")
 		return
 	}
 
 	db, err := database.Get()
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ID, "Failed to connect to database")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		return
 	}
@@ -43,13 +42,14 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
 		return
 	}
 
 	if len(values) == 0 {
-		_, err = ds.ChannelMessageSend(mc.ID, "No matches found")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "No matches found")
 	} else {
-		_, err = ds.ChannelMessageSend(mc.ID, strings.Join(values, ", "))
+		_, err = ds.ChannelMessageSend(mc.ChannelID, strings.Join(values, ", "))
 	}
 }
 

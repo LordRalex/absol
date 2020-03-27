@@ -286,7 +286,7 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 		return
 	}
 	for _, v := range mc.Messages {
-		err = (stmt, v)
+		err = database.Execute(stmt, v)
 		if err != nil {
 			logger.Err().Print(err.Error())
 		}

@@ -1,6 +1,7 @@
 package log
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
@@ -55,14 +56,9 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
-	g := getGuild(ds, mc.GuildID)
-	if g == nil {
-		return
-	}
-
 	logged := false
 	for _, v := range loggedServers {
-		if v == g.Name {
+		if v == mc.GuildID {
 			logged = true
 		}
 	}
@@ -90,12 +86,32 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
-	stmt, err := db.DB().Prepare("INSERT INTO messages (id, channel, sender, content) VALUES (?, ?, ?, ?);")
+	guild := getGuild(ds, mc.GuildID)
+
+	stmt, err := db.DB().Prepare("INSERT INTO guilds (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
 	}
-	_, err = stmt.Exec(mc.ID, c.Name, mc.Author.Username+"#"+mc.Author.Discriminator, message)
+	err = executeStatement(stmt, guild.ID, guild.Name)
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+
+	stmt, err = db.DB().Prepare("INSERT INTO channels (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
+	err = executeStatement(stmt, c.ID, c.Name)
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+
+	stmt, err = db.DB().Prepare("INSERT INTO messages (id, sender, content, guild_id, channel_id) VALUES (?, ?, ?, ?, ?);")
+	if err != nil {
+		logger.Err().Print(err.Error())
+		return
+	}
+	err = executeStatement(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -106,14 +122,9 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		return
 	}
 
-	g := getGuild(ds, mc.GuildID)
-	if g == nil {
-		return
-	}
-
 	logged := false
 	for _, v := range loggedServers {
-		if v == g.Name {
+		if v == mc.GuildID {
 			logged = true
 		}
 	}
@@ -161,7 +172,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	_, err = stmt.Exec(mc.Message.ID)
+	err = executeStatement(stmt, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -171,7 +182,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	_, err = stmt.Exec(message, mc.Message.ID)
+	err = executeStatement(stmt, message, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -179,14 +190,9 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 }
 
 func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
-	g := getGuild(ds, mc.GuildID)
-	if g == nil {
-		return
-	}
-
 	logged := false
 	for _, v := range loggedServers {
-		if v == g.Name {
+		if v == mc.GuildID {
 			logged = true
 		}
 	}
@@ -249,21 +255,16 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	_, err = stmt.Exec(mc.ID)
+	err = executeStatement(stmt, mc.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
 }
 
 func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk) {
-	g := getGuild(ds, mc.GuildID)
-	if g == nil {
-		return
-	}
-
 	logged := false
 	for _, v := range loggedServers {
-		if v == g.Name {
+		if v == mc.GuildID {
 			logged = true
 		}
 	}
@@ -286,7 +287,7 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 		return
 	}
 	for _, v := range mc.Messages {
-		_, err = stmt.Exec(v)
+		err = executeStatement(stmt, v)
 		if err != nil {
 			logger.Err().Print(err.Error())
 		}
@@ -311,7 +312,6 @@ func getGuild(ds *discordgo.Session, guildId string) *discordgo.Guild {
 
 	return g
 }
-
 func getChannel(ds *discordgo.Session, channelId string) *discordgo.Channel {
 	c, err := ds.State.Channel(channelId)
 	if err != nil {
@@ -329,4 +329,10 @@ func getChannel(ds *discordgo.Session, channelId string) *discordgo.Channel {
 	}
 
 	return c
+}
+
+func executeStatement(stmt *sql.Stmt, args ...interface{}) error {
+	defer stmt.Close()
+	_, err := stmt.Exec(args...)
+	return err
 }

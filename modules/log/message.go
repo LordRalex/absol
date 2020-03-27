@@ -92,14 +92,14 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = database.Execute(stmt, guild.ID, guild.Name)
+	err = database.Execute(stmt, guild.ID, guild.Name, guild.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
 	}
 
 	stmt, err = db.DB().Prepare("INSERT INTO channels (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
-	err = database.Execute(stmt, c.ID, c.Name)
+	err = database.Execute(stmt, c.ID, c.Name, c.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return

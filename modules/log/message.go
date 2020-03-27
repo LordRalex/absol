@@ -1,7 +1,6 @@
 package log
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
@@ -93,14 +92,14 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = executeStatement(stmt, guild.ID, guild.Name)
+	err = database.Execute(stmt, guild.ID, guild.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
 	}
 
 	stmt, err = db.DB().Prepare("INSERT INTO channels (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
-	err = executeStatement(stmt, c.ID, c.Name)
+	err = database.Execute(stmt, c.ID, c.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -111,7 +110,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = executeStatement(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID)
+	err = database.Execute(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -172,7 +171,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = executeStatement(stmt, mc.Message.ID)
+	err = database.Execute(stmt, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -182,7 +181,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = executeStatement(stmt, message, mc.Message.ID)
+	err = database.Execute(stmt, message, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -255,7 +254,7 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		logger.Err().Print(err.Error())
 		return
 	}
-	err = executeStatement(stmt, mc.ID)
+	err = database.Execute(stmt, mc.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
@@ -287,7 +286,7 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 		return
 	}
 	for _, v := range mc.Messages {
-		err = executeStatement(stmt, v)
+		err = (stmt, v)
 		if err != nil {
 			logger.Err().Print(err.Error())
 		}
@@ -329,10 +328,4 @@ func getChannel(ds *discordgo.Session, channelId string) *discordgo.Channel {
 	}
 
 	return c
-}
-
-func executeStatement(stmt *sql.Stmt, args ...interface{}) error {
-	defer stmt.Close()
-	_, err := stmt.Exec(args...)
-	return err
 }

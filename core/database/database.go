@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/spf13/viper"
@@ -50,4 +51,10 @@ func load() (db *gorm.DB, err error) {
 		db.DB().SetMaxOpenConns(10)
 	}
 	return
+}
+
+func Execute(stmt *sql.Stmt, args ...interface{}) error {
+	defer stmt.Close()
+	_, err := stmt.Exec(args...)
+	return err
 }

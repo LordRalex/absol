@@ -206,18 +206,18 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		logger.Debug().Printf("[DELETE] [%s]", mc.ID)
 	}
 
-	go func() {
+	go func(guildId string) {
 		auditLastCheck.Lock()
 		defer auditLastCheck.Unlock()
-		auditLog, err := ds.GuildAuditLog(mc.GuildID, "", "", discordgo.AuditLogActionMessageDelete, 1)
+		auditLog, err := ds.GuildAuditLog(guildId, "", "", discordgo.AuditLogActionMessageDelete, 1)
 		if err != nil {
 			logger.Err().Printf("Failed to check audit log: %s", err.Error())
 		} else {
 			for _, v := range auditLog.AuditLogEntries {
-				if lastAuditIds[mc.GuildID] == v.ID {
+				if lastAuditIds[guildId] == v.ID {
 					//we have already processed this ID, which means the delete was a self-delete
 				} else {
-					lastAuditIds[mc.GuildID] = v.ID
+					lastAuditIds[guildId] = v.ID
 
 					var deleter, messenger string
 					for _, u := range auditLog.Users {
@@ -229,8 +229,9 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 					}
 
 					logger.Debug().Printf("[AUDIT] [%s] deleted messages by [%s]", deleter, messenger)
-					for _, v := range ds.State.Guilds[0].Channels {
-						if v.Name == "bot" {
+					guild := getGuild(ds, guildId)
+					for _, v := range guild.Channels {
+						if v.Name == "bot" || v.Name == "log" {
 							_, err = ds.ChannelMessageSend(v.ID, fmt.Sprintf("LAST AUDIT ACTION - %s deleted messages by %s", deleter, messenger))
 							if err != nil {
 								logger.Err().Printf("Error sending audit message: %s", err.Error())
@@ -241,7 +242,7 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 				}
 			}
 		}
-	}()
+	}(mc.GuildID)
 
 	db, err := database.Get()
 	if err != nil {

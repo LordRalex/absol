@@ -9,6 +9,7 @@ import (
 	"github.com/lordralex/absol/modules/factoids"
 	"github.com/lordralex/absol/modules/log"
 	"github.com/lordralex/absol/modules/twitch"
+        "github.com/lordralex/absol/modules/hjt"
 	"strings"
 )
 
@@ -28,6 +29,8 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["log"] = &log.Module{}
 		case "factoids":
 			loadedModules["factoids"] = &factoids.Module{}
+                case "hjt":
+			loadedModules["hjt"] = &hjt.Module{}
 		default:
 			logger.Err().Printf("No logger with name %s\n", v)
 		}

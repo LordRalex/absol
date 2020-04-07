@@ -14,7 +14,7 @@ type Module struct {
 }
 
 func (*Module) Load(ds *discordgo.Session) {
-	api.RegisterCommand("", RunCommand)
+	//api.RegisterCommand("", RunCommand)
 	api.RegisterCommand("f", RunCommand)
 	api.RegisterCommand("factoid", RunCommand)
 }

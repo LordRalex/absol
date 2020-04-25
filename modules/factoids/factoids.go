@@ -79,7 +79,6 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	_, err = ds.ChannelMessageSend(mc.ChannelID, ">>> "+msg)
-	_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 }
 
 type factoid struct {

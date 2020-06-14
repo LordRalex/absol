@@ -6,6 +6,7 @@ import (
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/lordralex/absol/core/database"
+	"github.com/spf13/viper"
 	"strings"
 )
 
@@ -20,6 +21,7 @@ func (*Module) Load(ds *discordgo.Session) {
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
+	shouldDelete := viper.GetBoolean("factoid.delete")
 	if len(args) == 0 {
 		return
 	}
@@ -79,7 +81,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	_, err = ds.ChannelMessageSend(mc.ChannelID, ">>> "+msg)
-	_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
+	if shouldDelete {
+		_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
+	}
 }
 
 type factoid struct {

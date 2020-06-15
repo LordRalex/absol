@@ -21,7 +21,7 @@ func (*Module) Load(ds *discordgo.Session) {
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
-	shouldDelete := viper.GetBoolean("factoid.delete")
+	shouldDelete := viper.GetBool("factoid.delete")
 	if len(args) == 0 {
 		return
 	}

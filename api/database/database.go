@@ -24,10 +24,6 @@ func Get() (*gorm.DB, error) {
 		databaseConn, err = load()
 	}
 
-	if err == nil && databaseConn != nil {
-
-	}
-
 	return databaseConn, err
 }
 

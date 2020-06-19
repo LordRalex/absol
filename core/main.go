@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
@@ -39,6 +39,7 @@ func main() {
 	defer database.Close()
 
 	Session, _ = discordgo.New()
+	defer Session.Close()
 
 	if len(modules) > 0 {
 		LoadModule(Session, modules)
@@ -51,9 +52,7 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-
-	// Clean up
-	_ = Session.Close()
+	fmt.Println("Shutting down")
 }
 
 func OpenConnection(token string) {

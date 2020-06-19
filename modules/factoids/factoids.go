@@ -5,8 +5,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/lordralex/absol/core/database"
 	"github.com/spf13/viper"
+	"github.com/lordralex/absol/api/database"
 	"strings"
 )
 
@@ -61,10 +61,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	msg = strings.Replace(msg, "[/i]", "*", -1)
 	msg = strings.Replace(msg, ";;", "\n", -1)
 
-	if strings.Contains(msg, "http") {
+	if strings.Contains(msg, "https://") || strings.Contains(msg, "http://") {
 		msgsplit := strings.Split(msg, " ")
 		for k, v := range msgsplit {
-			if strings.HasPrefix(v, "http") {
+			if strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "http://") {
 				msgsplit[k] = "<" + v + ">"
 			}
 		}

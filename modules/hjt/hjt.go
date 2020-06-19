@@ -4,7 +4,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/lordralex/absol/core/database"
+	"github.com/lordralex/absol/api/database"
 	"io/ioutil"
 	"net/http"
 	"strings"

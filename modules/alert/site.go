@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/lordralex/absol/core/database"
+	"github.com/lordralex/absol/api/database"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"

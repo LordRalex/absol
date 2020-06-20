@@ -273,9 +273,11 @@ func (s *site) isLoggable(item Item) bool {
 			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
 		}
 
-		err = submitToElastic(item.Link.Id, data)
-		if err != nil {
-			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+		if viper.GetBool("alerter.elastic") {
+			err = submitToElastic(item.Link.Id, data)
+			if err != nil {
+				logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
+			}
 		}
 
 		return true
@@ -337,7 +339,7 @@ func submitToElastic(id string, data map[string]interface{}) error {
 	delete(data, "webHostHtmlMessage")
 	delete(data, "HTTP_COOKIE")
 
-	//convert query string to a standard string isntead
+	//convert query string to a standard string instead
 	qs := data["queryString"]
 	if qs != nil {
 		d, err := json.Marshal(qs)
@@ -356,11 +358,11 @@ func submitToElastic(id string, data map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	es, err := http.NewRequest("PUT", viper.GetString("ELASTIC_URL")+"/_doc/"+id, bytes.NewBuffer(encoded))
+	es, err := http.NewRequest("PUT", viper.GetString("elastic.url")+"/_doc/"+id, bytes.NewBuffer(encoded))
 	if err != nil {
 		return err
 	}
-	es.SetBasicAuth(viper.GetString("ELASTIC_USER"), viper.GetString("ELASTIC_PASS"))
+	es.SetBasicAuth(viper.GetString("elastic.user"), viper.GetString("elastic.pass"))
 	es.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(es)

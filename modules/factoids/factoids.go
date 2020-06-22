@@ -1,12 +1,13 @@
 package factoids
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
-	"github.com/lordralex/absol/api/database"
 	"strings"
 )
 
@@ -21,16 +22,34 @@ func (*Module) Load(ds *discordgo.Session) {
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
-	shouldDelete := viper.GetBool("factoid.delete")
 	if len(args) == 0 {
 		return
 	}
 
-	var factoidName string
+	factoids := make([]string, 0)
 	if cmd == "" {
-		factoidName = cmd
-	} else {
-		factoidName = args[0]
+		factoids = []string{cmd}
+	}
+
+	for _, v := range args {
+		skip := false
+		for _, m := range mc.Mentions {
+			if m.Mention() == v {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			factoids = append(factoids, v)
+		}
+	}
+
+	max := viper.GetInt("factoids.max")
+	if max == 0 {
+		max = 5
+	}
+	if len(factoids) > max {
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", max))
 	}
 
 	db, err := database.Get()
@@ -40,11 +59,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		return
 	}
 
-	var data factoid
+	var data []factoid
+	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
-	err = db.Where("name = ?", factoidName).First(&data).Error
-
-	if err != nil && gorm.IsRecordNotFoundError(err) {
+	if gorm.IsRecordNotFoundError(err) || (err == nil && len(data) == 0) {
 		_, err = ds.ChannelMessageSend(mc.ChannelID, "No factoid with the given name was found")
 		return
 	} else if err != nil {
@@ -52,7 +70,38 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		return
 	}
 
-	msg := data.Content
+	if len(factoids) != len(data) {
+		//we have a missing one...
+		missing := make([]string, 0)
+		for _, v := range factoids {
+			good := false
+			for _, k := range data {
+				if v == k.Name {
+					good = true
+					break
+				}
+			}
+			if !good {
+				missing = append(missing, v)
+			}
+		}
+
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "No factoid with the given name(s) was found: "+strings.Join(missing, ", "))
+		return
+	}
+
+	msg := ""
+	for i, v := range factoids {
+		for _, o := range data {
+			if o.Name == v {
+				msg += o.Content
+				if i+1 != len(factoids) {
+					msg += "\n\n"
+				}
+			}
+		}
+	}
+
 	msg = strings.Replace(msg, "[b]", "**", -1)
 	msg = strings.Replace(msg, "[/b]", "**", -1)
 	msg = strings.Replace(msg, "[u]", "__", -1)
@@ -71,17 +120,32 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		msg = strings.Join(msgsplit, " ")
 	}
 
+	header := ""
 	if len(mc.Mentions) > 0 {
 		//if we have an @, we'll add it to the message
-		header := ""
 		for _, v := range mc.Mentions {
 			header += "<@" + v.ID + "> "
 		}
-		msg = header + "Please refer to the below information:\n" + msg
+		header += "Please refer to the below information."
 	}
 
-	_, err = ds.ChannelMessageSend(mc.ChannelID, ">>> "+msg)
-	if shouldDelete {
+	embed := &discordgo.MessageEmbed{
+		Description: msg,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "I am a bot, I will not respond to you\nIssued by " + mc.Author.Username + "#" + mc.Author.Discriminator,
+		},
+	}
+
+	send := &discordgo.MessageSend{
+		Content: header,
+		Embed:   embed,
+	}
+
+	_, err = ds.ChannelMessageSendComplex(mc.ChannelID, send)
+	if err != nil {
+		logger.Err().Printf("Failed to pull data from database\n%s", err)
+	}
+	if viper.GetBool("factoid.delete") {
 		_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 	}
 }

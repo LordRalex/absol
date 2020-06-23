@@ -31,10 +31,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		factoids = []string{cmd}
 	}
 
+	if len(mc.MentionRoles) + len(mc.MentionChannels) > 0 {
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Cannot mention to roles or channels")
+		return
+	}
+
 	for _, v := range args {
 		skip := false
 		for _, m := range mc.Mentions {
-			if m.Mention() == v {
+			if "<@!" + m.ID + ">" == v || "<@" + m.ID + ">" ==v {
 				skip = true
 				break
 			}
@@ -50,6 +55,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 	if len(factoids) > max {
 		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", max))
+		return
 	}
 
 	db, err := database.Get()

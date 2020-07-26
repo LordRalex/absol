@@ -147,13 +147,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		Embed:   embed,
 	}
 
-	_, err = ds.ChannelMessageSendComplex(mc.ChannelID, send)
-	if err != nil {
-		logger.Err().Printf("Failed to pull data from database\n%s", err)
-	}
-	if viper.GetBool("factoid.delete") {
+        if viper.GetBool("factoid.delete") {
 		_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 	}
+
+	_, err = ds.ChannelMessageSendComplex(mc.ChannelID, send)
+	if err != nil {
+		logger.Err().Printf("Failed to send message\n%s", err)
+	}
+	
 }
 
 type factoid struct {

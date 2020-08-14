@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const PostDelay = -1 * time.Hour * 24
-
 type Module struct {
 	api.Module
 }
@@ -36,9 +34,15 @@ func runTick(ds *discordgo.Session) {
 	logger.Debug().Print("Running channel cleanup")
 	envChan := viper.GetString("cleanerChannel")
 
+	postDelay := -1 * time.Hour * 24
+	delay := viper.GetInt("cleanerTime")
+	if delay != 0 {
+		postDelay = -1 * time.Hour * time.Duration(delay)
+	}
+
 	channels := strings.Split(envChan, ";")
 
-	cutOff := time.Now().Add(PostDelay)
+	cutOff := time.Now().Add(postDelay)
 
 	for _, channel := range channels {
 		c, err := ds.State.Channel(channel)

@@ -9,6 +9,7 @@ import (
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
 	"strings"
+	"time"
 )
 
 type Module struct {
@@ -31,15 +32,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		factoids = []string{cmd}
 	}
 
-	if len(mc.MentionRoles) + len(mc.MentionChannels) > 0 {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Cannot mention to roles or channels")
+	if len(mc.MentionRoles)+len(mc.MentionChannels) > 0 {
+		_ = SendWithSelfDelete(ds, mc.ChannelID, "Cannot mention to roles or channels")
 		return
 	}
 
 	for _, v := range args {
 		skip := false
 		for _, m := range mc.Mentions {
-			if "<@!" + m.ID + ">" == v || "<@" + m.ID + ">" ==v {
+			if "<@!"+m.ID+">" == v || "<@"+m.ID+">" == v {
 				skip = true
 				break
 			}
@@ -54,13 +55,13 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		max = 5
 	}
 	if len(factoids) > max {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", max))
+		_ = SendWithSelfDelete(ds, mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", max))
 		return
 	}
 
 	db, err := database.Get()
 	if err != nil {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
+		err = SendWithSelfDelete(ds, mc.ChannelID, "Failed to connect to database")
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		return
 	}
@@ -69,7 +70,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
 	if gorm.IsRecordNotFoundError(err) || (err == nil && len(data) == 0) {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "No factoid with the given name was found")
+		err = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found")
 		return
 	} else if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
@@ -92,7 +93,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 			}
 		}
 
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "No factoid with the given name(s) was found: "+strings.Join(missing, ", "))
+		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name(s) was found: "+strings.Join(missing, ", "))
 		return
 	}
 
@@ -138,7 +139,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	embed := &discordgo.MessageEmbed{
 		Description: msg,
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "I am a bot, I will not respond to you\nIssued by " + mc.Author.Username + "#" + mc.Author.Discriminator,
+			Text: "I am a bot, I will not respond to you. Command issued by " + mc.Author.Username + "#" + mc.Author.Discriminator,
 		},
 	}
 
@@ -147,7 +148,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		Embed:   embed,
 	}
 
-        if viper.GetBool("factoid.delete") {
+	if viper.GetBool("factoid.delete") {
 		_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 	}
 
@@ -155,7 +156,19 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	if err != nil {
 		logger.Err().Printf("Failed to send message\n%s", err)
 	}
-	
+}
+
+func SendWithSelfDelete(ds *discordgo.Session, channelId, message string) error {
+	m, err := ds.ChannelMessageSend(channelId, message)
+	if err != nil {
+		return err
+	}
+
+	go func(ch, id string, session *discordgo.Session) {
+		<-time.After(10 * time.Second)
+		_ = ds.ChannelMessageDelete(channelId, m.ID)
+	}(channelId, m.ID, ds)
+	return nil
 }
 
 type factoid struct {

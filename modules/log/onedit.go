@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 )
@@ -22,7 +23,7 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 		return
 	}
 
-	c := getChannel(ds, mc.ChannelID)
+	c := api.GetChannel(ds, mc.ChannelID)
 
 	if c == nil || c.Type == discordgo.ChannelTypeDM {
 		return

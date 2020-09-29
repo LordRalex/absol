@@ -16,6 +16,8 @@ type Module struct {
 
 func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterCommand("hjt", RunCommand)
+
+	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {

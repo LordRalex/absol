@@ -26,7 +26,6 @@ func (c *Module) Load(d *discordgo.Session) {
 					runTick(ds)
 				}}
 		}
-
 	}(d)
 }
 

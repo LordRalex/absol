@@ -1,14 +1,11 @@
 package alert
 
 import (
-	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -39,80 +36,6 @@ func (m *Module) Load(d *discordgo.Session) {
 				}}
 		}
 	}(d)
-
-	api.RegisterCommand("silent", RunCommand)
-	api.RegisterCommand("resume", RunCommand)
-}
-
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
-	//only permit usage of this command in certain servers
-	allowed := viper.GetString("alerter.server")
-	guild, err := ds.State.Guild(mc.GuildID)
-
-	if err != nil {
-		logger.Err().Printf("Error getting guild information")
-		return
-	}
-	if guild == nil {
-		return
-	}
-
-	if guild.Name != allowed {
-		return
-	}
-
-	if len(args) == 0 {
-		if cmd == "silent" {
-			_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: silent <sitename> [duration]")
-		} else if cmd == "resume" {
-			_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: resume <sitename>")
-		}
-		return
-	}
-
-	siteName := strings.ToLower(args[0])
-	var targetSite *site
-	for _, v := range knownSites {
-		if strings.ToLower(v.SiteName) == siteName {
-			targetSite = v
-			break
-		}
-	}
-
-	if targetSite == nil {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Usage: No site with given name")
-		return
-	}
-
-	switch cmd {
-	case "silent":
-		{
-			silentTime := time.Hour
-			if len(args) == 2 {
-				silentTime, err = time.ParseDuration(args[1])
-				if err != nil {
-					_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to parse time duration: "+err.Error())
-				}
-			}
-			targetSite.fullyIgnore = true
-			go func(ts *site, duration time.Duration, chanId string) {
-				<-time.After(silentTime)
-				if targetSite.fullyIgnore {
-					targetSite.fullyIgnore = false
-					_, _ = ds.ChannelMessageSend(chanId, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
-				}
-			}(targetSite, silentTime, mc.ChannelID)
-
-			_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Will not report errors from %s for %s", targetSite.SiteName, silentTime.String()))
-			break
-		}
-	case "resume":
-		{
-			targetSite.silent = false
-			_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Reporting re-enabled for %s", targetSite.SiteName))
-			break
-		}
-	}
 }
 
 func syncSites() {

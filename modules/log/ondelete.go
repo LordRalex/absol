@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 )
@@ -28,7 +29,7 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 	go func(guildId string) {
 		auditLastCheck.Lock()
 		defer auditLastCheck.Unlock()
-		auditLog, err := ds.GuildAuditLog(guildId, "", "", discordgo.AuditLogActionMessageDelete, 1)
+		auditLog, err := ds.GuildAuditLog(guildId, "", "", int(discordgo.AuditLogActionMessageDelete), 1)
 		if err != nil {
 			logger.Err().Printf("Failed to check audit log: %s", err.Error())
 		} else {
@@ -48,7 +49,7 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 					}
 
 					logger.Debug().Printf("[AUDIT] [%s] deleted messages by [%s]", deleter, messenger)
-					guild := getGuild(ds, guildId)
+					guild := api.GetGuild(ds, guildId)
 					for _, v := range guild.Channels {
 						if v.Name == "bot" || v.Name == "log" {
 							_, err = ds.ChannelMessageSend(v.ID, fmt.Sprintf("LAST AUDIT ACTION - %s deleted messages by %s", deleter, messenger))

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
@@ -60,6 +61,7 @@ func OpenConnection(token string) {
 		token = "Bot " + token
 	}
 	Session.Token = token
+	Session.Identify.Intents = api.GetIntent()
 
 	EnableCommands(Session)
 

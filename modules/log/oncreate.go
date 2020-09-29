@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 )
@@ -26,7 +27,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
-	c := getChannel(ds, mc.ChannelID)
+	c := api.GetChannel(ds, mc.ChannelID)
 
 	if c == nil || c.Type == discordgo.ChannelTypeDM {
 		return
@@ -60,7 +61,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 
-	guild := getGuild(ds, mc.GuildID)
+	guild := api.GetGuild(ds, mc.GuildID)
 
 	stmt, _ := db.DB().Prepare("INSERT INTO guilds (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
 	err = database.Execute(stmt, guild.ID, guild.Name, guild.Name)

@@ -101,30 +101,12 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	for i, v := range factoids {
 		for _, o := range data {
 			if o.Name == v {
-				msg += o.Content
+				msg += cleanupFactoid(o.Content)
 				if i+1 != len(factoids) {
 					msg += "\n\n"
 				}
 			}
 		}
-	}
-
-	msg = strings.Replace(msg, "[b]", "**", -1)
-	msg = strings.Replace(msg, "[/b]", "**", -1)
-	msg = strings.Replace(msg, "[u]", "__", -1)
-	msg = strings.Replace(msg, "[/u]", "__", -1)
-	msg = strings.Replace(msg, "[i]", "*", -1)
-	msg = strings.Replace(msg, "[/i]", "*", -1)
-	msg = strings.Replace(msg, ";;", "\n", -1)
-
-	if strings.Contains(msg, "https://") || strings.Contains(msg, "http://") {
-		msgsplit := strings.Split(msg, " ")
-		for k, v := range msgsplit {
-			if strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "http://") {
-				msgsplit[k] = "<" + v + ">"
-			}
-		}
-		msg = strings.Join(msgsplit, " ")
 	}
 
 	header := ""
@@ -169,6 +151,28 @@ func SendWithSelfDelete(ds *discordgo.Session, channelId, message string) error 
 		_ = ds.ChannelMessageDelete(channelId, m.ID)
 	}(channelId, m.ID, ds)
 	return nil
+}
+
+func cleanupFactoid(msg string) string {
+	msg = strings.Replace(msg, "[b]", "**", -1)
+	msg = strings.Replace(msg, "[/b]", "**", -1)
+	msg = strings.Replace(msg, "[u]", "__", -1)
+	msg = strings.Replace(msg, "[/u]", "__", -1)
+	msg = strings.Replace(msg, "[i]", "*", -1)
+	msg = strings.Replace(msg, "[/i]", "*", -1)
+	msg = strings.Replace(msg, ";;", "\n", -1)
+
+	if strings.Contains(msg, "https://") || strings.Contains(msg, "http://") {
+		msgsplit := strings.Split(msg, " ")
+		for k, v := range msgsplit {
+			if strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "http://") {
+				msgsplit[k] = "<" + v + ">"
+			}
+		}
+		msg = strings.Join(msgsplit, " ")
+	}
+
+	return msg
 }
 
 type factoid struct {

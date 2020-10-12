@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"github.com/lordralex/absol/api/logger"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +25,7 @@ type site struct {
 	Channels     string
 	AlertServer  []string `gorm:"-"`
 	Servers      string
-	Cookie       string `gorm:"column:cookie_cobaltsession"`
+	Cookie       string   `gorm:"column:cookie_cobaltsession"`
 	Domain       string
 	MaxErrors    int
 	Period       int
@@ -121,20 +121,12 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 
 	logger.Debug().Printf("Sending message to server '%s' and channel '%s'", s.AlertServer, s.AlertChannel)
 
-	for k, v := range s.AlertServer {
-		for _, guild := range ds.State.Guilds {
-			if guild.Name == v {
-				for _, c := range guild.Channels {
-					if c.Name == s.AlertChannel[k] {
-						_, _ = ds.ChannelMessageSend(c.ID, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
-						s.silent = true
-						time.AfterFunc(time.Minute*5, func() {
-							s.silent = false
-						})
-					}
-				}
-			}
-		}
+	for _, v := range s.AlertServer {
+		_, _ = ds.ChannelMessageSend(v, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
+		s.silent = true
+		time.AfterFunc(time.Minute*5, func() {
+			s.silent = false
+		})
 	}
 }
 
@@ -144,7 +136,7 @@ func (s *site) isReportable(data Item) bool {
 	}
 
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
-	if ! data.PublishDate.After(cutoffTime) {
+	if !data.PublishDate.After(cutoffTime) {
 		return false
 	}
 
@@ -182,7 +174,7 @@ func (s *site) isReportable(data Item) bool {
 
 func (s *site) isImportantError(data Item) bool {
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
-	if ! data.PublishDate.After(cutoffTime) {
+	if !data.PublishDate.After(cutoffTime) {
 		return false
 	}
 
@@ -223,67 +215,7 @@ func (s *site) isLoggable(item Item) bool {
 		return false
 	}
 
-	//if item.Title == "The wait operation timed out" {
-		//we want this one!
-		req, err := s.createRequest(item.Link.Link)
-		if err != nil {
-			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
-			return false
-		}
-
-		response, err := client.Do(req)
-		if err != nil {
-			logger.Err().Printf("Error getting body from timeout: %s\n", err.Error())
-			return false
-		}
-		defer func() {
-			if response != nil && response.Body != nil {
-				_ = response.Body.Close()
-			}
-		}()
-
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
-			return false
-		}
-
-		var data map[string]interface{}
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			logger.Err().Printf("Error reading body from timeout: %s\n", err.Error())
-			return false
-		}
-
-		db, err := database.Get()
-		if err != nil {
-			logger.Err().Printf("Error connecting to database: %s\n", err.Error())
-			return false
-		}
-
-		stmt, err := db.DB().Prepare("INSERT INTO sites_timed_out (site, identifier, log) VALUES(?, ?, ?)")
-		if err != nil {
-			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
-			return false
-		}
-		defer stmt.Close()
-
-		_, err = stmt.Exec(s.SiteName, item.Link.Id, body)
-		if err != nil {
-			logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
-		}
-
-		if viper.GetBool("alerter.elastic") {
-			err = submitToElastic(item.Link.Id, data)
-			if err != nil {
-				logger.Err().Printf("Error saving body from timeout: %s\n", err.Error())
-			}
-		}
-
-		return true
-	//}
-
-	//return false
+	return true
 }
 
 func (s *site) AfterFind() (err error) {

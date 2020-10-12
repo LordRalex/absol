@@ -121,7 +121,7 @@ func (s *site) sendMessage(ds *discordgo.Session, msg string) {
 
 	logger.Debug().Printf("Sending message to server '%s' and channel '%s'", s.AlertServer, s.AlertChannel)
 
-	for _, v := range s.AlertServer {
+	for _, v := range s.AlertChannel {
 		_, _ = ds.ChannelMessageSend(v, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
 		s.silent = true
 		time.AfterFunc(time.Minute*5, func() {

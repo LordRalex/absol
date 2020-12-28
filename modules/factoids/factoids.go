@@ -111,11 +111,19 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	header := ""
-	if len(mc.Mentions) > 0 {
+	if len(mc.Mentions) > 0 || mc.MessageReference != nil  {
 		//if we have an @, we'll add it to the message
 		for _, v := range mc.Mentions {
 			header += "<@" + v.ID + "> "
 		}
+
+		if mc.MessageReference != nil && mc.MessageReference.MessageID != "" {
+			replyMsg, err := ds.ChannelMessage(mc.MessageReference.ChannelID, mc.MessageReference.MessageID)
+			if err == nil && replyMsg.ID != "" {
+				header += "<@" + replyMsg.Author.ID + "> " + " "
+			}
+		}
+
 		header += "Please refer to the below information."
 	}
 

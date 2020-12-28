@@ -111,17 +111,25 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	header := ""
-	if len(mc.Mentions) > 0 || mc.MessageReference != nil  {
+	if len(mc.Message.Mentions) > 0 || mc.MessageReference != nil  {
+		//the golang set
+		mentions := make(map[string]bool, 0)
+
 		//if we have an @, we'll add it to the message
 		for _, v := range mc.Mentions {
-			header += "<@" + v.ID + "> "
+			mentions[v.ID] = true
 		}
 
 		if mc.MessageReference != nil && mc.MessageReference.MessageID != "" {
 			replyMsg, err := ds.ChannelMessage(mc.MessageReference.ChannelID, mc.MessageReference.MessageID)
 			if err == nil && replyMsg.ID != "" {
-				header += "<@" + replyMsg.Author.ID + "> " + " "
+				mentions[replyMsg.Author.ID] = true
+
 			}
+		}
+
+		for k, _ := range mentions {
+			header += "<@" + k + "> " + " "
 		}
 
 		header += "Please refer to the below information."

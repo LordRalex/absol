@@ -1,6 +1,7 @@
 package log
 
 import (
+	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
@@ -75,8 +76,14 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		logger.Err().Print(err.Error())
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO messages (id, sender, content, guild_id, channel_id) VALUES (?, ?, ?, ?, ?);")
-	err = database.Execute(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID)
+	replyId := sql.NullString{}
+	if mc.MessageReference != nil {
+		replyId.String = mc.MessageReference.MessageID
+		replyId.Valid = true
+	}
+
+	stmt, _ = db.DB().Prepare("INSERT INTO messages (id, sender, content, guild_id, channel_id, reply_id) VALUES (?, ?, ?, ?, ?, ?);")
+	err = database.Execute(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID, replyId)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}

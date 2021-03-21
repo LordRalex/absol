@@ -30,7 +30,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	factoids := make([]string, 0)
 	if cmd == "" {
-		factoids = []string{cmd}
+		factoids = []string{strings.ToLower(cmd)}
 	}
 
 	if len(mc.MentionRoles)+len(mc.MentionChannels) > 0 {
@@ -47,7 +47,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 			}
 		}
 		if !skip {
-			factoids = append(factoids, v)
+			factoids = append(factoids, strings.ToLower(v))
 		}
 	}
 
@@ -94,8 +94,11 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 			}
 		}
 
-		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name(s) was found: "+strings.Join(missing, ", "))
-		return
+		//someone is dumb..... and put the same factoid twice
+		if len(missing) != 0 {
+			_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name(s) was found: "+strings.Join(missing, ", "))
+			return
+		}
 	}
 
 	msg := ""

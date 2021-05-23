@@ -76,14 +76,20 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		logger.Err().Print(err.Error())
 	}
 
+	stmt, _ = db.DB().Prepare("INSERT INTO users (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
+	err = database.Execute(stmt, mc.Author.ID, mc.Author.Username+"#"+mc.Author.Discriminator, mc.Author.Username+"#"+mc.Author.Discriminator)
+	if err != nil {
+		logger.Err().Print(err.Error())
+	}
+
 	replyId := sql.NullString{}
 	if mc.MessageReference != nil {
 		replyId.String = mc.MessageReference.MessageID
 		replyId.Valid = true
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO messages (id, sender, content, guild_id, channel_id, reply_id) VALUES (?, ?, ?, ?, ?, ?);")
-	err = database.Execute(stmt, mc.ID, mc.Author.Username+"#"+mc.Author.Discriminator, message, mc.GuildID, mc.ChannelID, replyId)
+	stmt, _ = db.DB().Prepare("INSERT INTO messages (id, user_id, content, guild_id, channel_id, reply_id) VALUES (?, ?, ?, ?, ?, ?);")
+	err = database.Execute(stmt, mc.ID, mc.Author.ID, message, mc.GuildID, mc.ChannelID, replyId)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}

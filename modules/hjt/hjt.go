@@ -51,7 +51,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	if len(values) == 0 {
 		_, err = ds.ChannelMessageSend(mc.ChannelID, "No matches found")
 	} else {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, strings.Join(values, ", "))
+		_, err = ds.ChannelMessageSend(mc.ChannelID, strings.Join(values, ",\n"))
 	}
 }
 

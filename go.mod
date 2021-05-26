@@ -1,6 +1,6 @@
 module github.com/lordralex/absol
 
-go 1.14
+go 1.15
 
 require (
 	github.com/bwmarrin/discordgo v0.22.1-0.20201217190221-8d6815dde7ed
@@ -8,8 +8,9 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/jinzhu/gorm v1.9.16
+	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mattn/go-sqlite3 v2.0.1+incompatible // indirect
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/spf13/afero v1.5.1 // indirect

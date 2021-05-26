@@ -48,8 +48,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	req := &http.Request{}
 	req.URL, err = url.Parse(requestUrl)
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Username does not seem like it's valid")
 		logger.Err().Printf("unable to parse url %s\n%s", requestUrl, err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Username does not seem like it's valid")
 		return
 	}
 
@@ -62,8 +62,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	response, err := Client.Do(req)
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 		logger.Err().Printf("unable to call twitch API\n%s", err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 		return
 	}
 	defer func() {
@@ -76,29 +76,17 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	err = json.NewDecoder(response.Body).Decode(data)
 
 	if err != nil {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 		logger.Err().Printf("unable to call twitch API\n%s", err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 		return
 	}
 
 	if data.Data == nil {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
-		if err != nil {
-			logger.Err().Printf("unable to call twitch API\n%s", err)
-			return
-		}
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 	} else if len(data.Data) == 0 {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "No such user called "+username)
-		if err != nil {
-			logger.Err().Printf("unable to call twitch API\n%s", err)
-			return
-		}
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "No such user called "+username)
 	} else {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, username+": "+data.Data[0].Id)
-		if err != nil {
-			logger.Err().Printf("unable to call twitch API\n%s", err)
-			return
-		}
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, username+": "+data.Data[0].Id)
 	}
 }
 

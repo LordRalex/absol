@@ -26,8 +26,6 @@ func main() {
 	if token == "" {
 		logger.Err().Print("DISCORD_TOKEN must be set in the environment to run this process")
 		return
-	} else {
-		fmt.Printf("Using token: %s\n", token)
 	}
 
 	defer func() {

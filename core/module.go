@@ -31,8 +31,6 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["factoids"] = &factoids.Module{}
 		case "hjt":
 			loadedModules["hjt"] = &hjt.Module{}
-		//case "banner":
-			//loadedModules["banner"] = &banner.Module{}
 		default:
 			logger.Err().Printf("No logger with name %s\n", v)
 		}

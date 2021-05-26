@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
 	"strings"
 )
@@ -21,7 +20,6 @@ func EnableCommands(session *discordgo.Session) {
 		commandPrefix = "!?"
 	}
 
-	logger.Out().Printf("Adding commands")
 	session.AddHandler(onMessageCommand)
 }
 
@@ -32,23 +30,6 @@ func onMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 
 	if !strings.HasPrefix(mc.Message.Content, commandPrefix) {
 		return
-	}
-
-	logger.Out().Printf("Command receieved")
-
-	c, err := ds.State.Channel(mc.ChannelID)
-	if err != nil {
-		// Try fetching via REST API
-		c, err = ds.Channel(mc.ChannelID)
-		if err != nil {
-			logger.Err().Printf("unable to fetch Channel for Message, %s", err)
-		} else {
-			// Attempt to add this channel into our State
-			err = ds.State.ChannelAdd(c)
-			if err != nil {
-				logger.Err().Printf("error updating State with Channel, %s", err)
-			}
-		}
 	}
 
 	msg := strings.TrimPrefix(mc.Message.Content, commandPrefix)

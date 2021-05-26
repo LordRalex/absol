@@ -44,22 +44,7 @@ func runTick(ds *discordgo.Session) {
 	cutOff := time.Now().Add(postDelay)
 
 	for _, channel := range channels {
-		c, err := ds.State.Channel(channel)
-		if err != nil {
-			// Try fetching via REST API
-			c, err = ds.Channel(channel)
-			if err != nil {
-				logger.Err().Printf("unable to fetch Channel for Message, %s", err)
-				return
-			} else {
-				// Attempt to add this channel into our State
-				err = ds.State.ChannelAdd(c)
-				if err != nil {
-					logger.Err().Printf("error updating State with Channel, %s", err)
-					return
-				}
-			}
-		}
+		c := api.GetChannel(ds, channel)
 
 		pinned, err := ds.ChannelMessagesPinned(c.ID)
 		if err != nil {

@@ -79,7 +79,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		if i != 0 {
 			message += "\n"
 		}
-		message += "\n" + v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
+		message += v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
 	_, _ = ds.ChannelMessageSend(mc.ChannelID, message)
 }

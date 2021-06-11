@@ -74,8 +74,11 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		return
 	}
 
-	message := mc.Author.Mention() + ", here is the results:"
-	for _, v := range data {
+	message := ""
+	for i, v := range data {
+		if i != 0 {
+			message += "\n"
+		}
 		message += "\n" + v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
 	_, _ = ds.ChannelMessageSend(mc.ChannelID, message)

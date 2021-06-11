@@ -8,10 +8,6 @@ import (
 )
 
 func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
-	if mc.Author != nil && mc.Author.ID == ds.State.User.ID {
-		return
-	}
-
 	logged := false
 	for _, v := range loggedServers {
 		if v == mc.GuildID {

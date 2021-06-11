@@ -9,10 +9,6 @@ import (
 )
 
 func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
-	if mc.Author.ID == ds.State.User.ID {
-		return
-	}
-
 	if mc.GuildID == "" {
 		return
 	}

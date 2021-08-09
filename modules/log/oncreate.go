@@ -52,27 +52,33 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 
 	logger.Debug().Printf("[%s] [%s] [%s#%s] [%s]", c.Name, mc.ID, mc.Author.Username, mc.Author.Discriminator, message)
 
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
-		logger.Err().Print(err.Error())
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return
+	}
+
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 		return
 	}
 
 	guild := api.GetGuild(ds, mc.GuildID)
 
-	stmt, _ := db.DB().Prepare("INSERT INTO guilds (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
+	stmt, _ := db.Prepare("INSERT INTO guilds (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
 	err = database.Execute(stmt, guild.ID, guild.Name, guild.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO channels (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
+	stmt, _ = db.Prepare("INSERT INTO channels (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
 	err = database.Execute(stmt, c.ID, c.Name, c.Name)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO users (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
+	stmt, _ = db.Prepare("INSERT INTO users (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
 	err = database.Execute(stmt, mc.Author.ID, mc.Author.Username+"#"+mc.Author.Discriminator, mc.Author.Username+"#"+mc.Author.Discriminator)
 	if err != nil {
 		logger.Err().Print(err.Error())
@@ -84,7 +90,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		replyId.Valid = true
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO messages (id, user_id, content, guild_id, channel_id, reply_id) VALUES (?, ?, ?, ?, ?, ?);")
+	stmt, _ = db.Prepare("INSERT INTO messages (id, user_id, content, guild_id, channel_id, reply_id) VALUES (?, ?, ?, ?, ?, ?);")
 	err = database.Execute(stmt, mc.ID, mc.Author.ID, message, mc.GuildID, mc.ChannelID, replyId)
 	if err != nil {
 		logger.Err().Print(err.Error())

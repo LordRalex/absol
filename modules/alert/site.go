@@ -141,13 +141,19 @@ func (s *site) isReportable(data Item) bool {
 	}
 
 	//if database connection fails, assume we can report this since it's in the right time-range
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 		return true
 	}
 
-	stmt, err := db.DB().Prepare("SELECT COUNT(1) AS Matches FROM sites_ignored_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return true
+	}
+
+	stmt, err := db.Prepare("SELECT COUNT(1) AS Matches FROM sites_ignored_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
 	if err != nil {
 		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
 		return true
@@ -178,13 +184,19 @@ func (s *site) isImportantError(data Item) bool {
 		return false
 	}
 
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
-		return false
+		return true
 	}
 
-	stmt, err := db.DB().Prepare("SELECT COUNT(1) AS Matches FROM sites_important_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return true
+	}
+
+	stmt, err := db.Prepare("SELECT COUNT(1) AS Matches FROM sites_important_errors WHERE site = ? AND ( ? LIKE title OR ? LIKE description)")
 	if err != nil {
 		logger.Err().Printf("Error checking if record is ignorable: %s\n", err.Error())
 		return false

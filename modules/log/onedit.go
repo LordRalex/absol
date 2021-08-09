@@ -47,19 +47,25 @@ func OnMessageEdit(ds *discordgo.Session, mc *discordgo.MessageUpdate) {
 
 	logger.Debug().Printf("[EDIT] [%s] [%s] [%s]", c.Name, mc.ID, message)
 
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
-		logger.Err().Print(err.Error())
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 		return
 	}
 
-	stmt, _ := db.DB().Prepare("INSERT INTO edits (message_id, old_content) SELECT id, content FROM messages WHERE id =?")
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return
+	}
+
+	stmt, _ := db.Prepare("INSERT INTO edits (message_id, old_content) SELECT id, content FROM messages WHERE id =?")
 	err = database.Execute(stmt, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}
 
-	stmt, _ = db.DB().Prepare("UPDATE messages SET content = ? WHERE id = ?")
+	stmt, _ = db.Prepare("UPDATE messages SET content = ? WHERE id = ?")
 	err = database.Execute(stmt, message, mc.Message.ID)
 	if err != nil {
 		logger.Err().Print(err.Error())

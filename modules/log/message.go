@@ -1,9 +1,9 @@
 package log
 
 import (
+	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
@@ -51,9 +51,9 @@ func OnConnect(ds *discordgo.Session, mc *discordgo.Connect) {
 	}
 }
 
-func downloadAttachment(db *gorm.DB, id, url, filename string) {
+func downloadAttachment(db *sql.DB, id, url, filename string) {
 	//check to see if URL already exists, if so, skip
-	stmt, _ := db.DB().Prepare("SELECT id from attachments WHERE url = ?")
+	stmt, _ := db.Prepare("SELECT id from attachments WHERE url = ?")
 	rows, err := stmt.Query(url)
 	_ = stmt.Close()
 	if err != nil {
@@ -73,7 +73,7 @@ func downloadAttachment(db *gorm.DB, id, url, filename string) {
 		data, _ = ioutil.ReadAll(response.Body)
 	}
 
-	stmt, _ = db.DB().Prepare("INSERT INTO attachments (message_id, url, name, contents) VALUES (?, ?, ?, ?);")
+	stmt, _ = db.Prepare("INSERT INTO attachments (message_id, url, name, contents) VALUES (?, ?, ?, ?);")
 	err = database.Execute(stmt, id, url, filename, data)
 	if err != nil {
 		logger.Err().Print(err.Error())

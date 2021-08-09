@@ -64,13 +64,19 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 		}
 	}(mc.GuildID)
 
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
-		logger.Err().Print(err.Error())
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 		return
 	}
 
-	stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return
+	}
+
+	stmt, err := db.Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return
@@ -95,13 +101,19 @@ func OnMessageDeleteBulk(ds *discordgo.Session, mc *discordgo.MessageDeleteBulk)
 
 	logger.Debug().Printf("[DELETE-BULK] [%s]", mc.Messages)
 
-	db, err := database.Get()
+	gorm, err := database.Get()
 	if err != nil {
-		logger.Err().Print(err.Error())
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
 		return
 	}
 
-	stmt, err := db.DB().Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
+	db, err := gorm.DB()
+	if err != nil {
+		logger.Err().Printf("Error connecting to database: %s\n", err.Error())
+		return
+	}
+
+	stmt, err := db.Prepare("UPDATE messages SET deleted = 1 WHERE id = ?;")
 	if err != nil {
 		logger.Err().Print(err.Error())
 		return

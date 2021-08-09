@@ -2,9 +2,10 @@ package database
 
 import (
 	"database/sql"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"sync"
 	"time"
 )
@@ -27,24 +28,18 @@ func Get() (*gorm.DB, error) {
 	return databaseConn, err
 }
 
-func Close() {
-	if databaseConn != nil {
-		_ = databaseConn.Close()
-	}
-}
-
 func load() (db *gorm.DB, err error) {
 	connString := viper.GetString("database")
 	if connString == "" {
-		connString = "discord:discord@/discord"
+		connString = "discord:discord@/discord?charset=utf8mb4&parseTime=True"
 	}
 
-	db, err = gorm.Open("mysql", connString)
+	db, err = gorm.Open(mysql.Open(connString), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if db != nil {
-		db.LogMode(true)
-		db.DB().SetConnMaxLifetime(time.Second * 10)
-		db.DB().SetMaxIdleConns(0)
-		db.DB().SetMaxOpenConns(10)
+		sqlDb, _ := db.DB()
+		sqlDb.SetConnMaxLifetime(time.Second * 10)
+		sqlDb.SetMaxIdleConns(0)
+		sqlDb.SetMaxOpenConns(10)
 	}
 	return
 }

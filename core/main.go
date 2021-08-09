@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
 	"os"
@@ -34,8 +33,6 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "Error closing logger: %s", err.Error())
 		}
 	}()
-
-	defer database.Close()
 
 	Session, _ = discordgo.New()
 	defer Session.Close()

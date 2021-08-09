@@ -67,7 +67,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	var data []HJT
-	err = db.Find(&data, results).Order("severity desc", true).Error
+	err = db.Find(&data, results).Order("severity desc").Error
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
 		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")

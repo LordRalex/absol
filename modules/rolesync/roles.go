@@ -43,6 +43,7 @@ func syncRoles(ds *discordgo.Session) {
 		if guildId == "" {
 			continue
 		}
+		logger.Out().Printf("Syncing roles for %s\n", guildId)
 		roles, err := ds.GuildRoles(guildId)
 		if err != nil {
 			logger.Err().Printf("Failed to sync roles for %s: %s\n", guildId, err.Error())

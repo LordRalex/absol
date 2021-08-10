@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
@@ -230,7 +231,7 @@ func (s *site) isLoggable(item Item) bool {
 	return true
 }
 
-func (s *site) AfterFind() (err error) {
+func (s *site) AfterFind(*gorm.DB) (err error) {
 	s.AlertChannel = strings.Split(s.Channels, ";")
 	s.AlertServer = strings.Split(s.Servers, ";")
 	return

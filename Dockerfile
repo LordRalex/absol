@@ -16,4 +16,4 @@ FROM alpine
 COPY --from=builder /build/absol /go/bin/absol
 
 ENTRYPOINT ["/go/bin/absol"]
-CMD ["alert", "cleaner", "factoids", "log", "twitch", "hjt", "rolesync"]
+CMD ["alert", "cleaner", "factoids", "log", "twitch", "hjt"]

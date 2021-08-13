@@ -2,10 +2,10 @@ package hjt
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"regexp"

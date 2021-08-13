@@ -9,7 +9,6 @@ import (
 	"github.com/lordralex/absol/modules/factoids"
 	"github.com/lordralex/absol/modules/hjt"
 	"github.com/lordralex/absol/modules/log"
-	"github.com/lordralex/absol/modules/rolesync"
 	"github.com/lordralex/absol/modules/twitch"
 	"strings"
 )
@@ -32,8 +31,6 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["factoids"] = &factoids.Module{}
 		case "hjt":
 			loadedModules["hjt"] = &hjt.Module{}
-		case "rolesync":
-			loadedModules["rolesync"] = &rolesync.Module{}
 		default:
 			logger.Err().Printf("No module with name %s\n", v)
 		}

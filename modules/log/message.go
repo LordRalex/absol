@@ -3,7 +3,6 @@ package log
 import (
 	"database/sql"
 	"github.com/bwmarrin/discordgo"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"

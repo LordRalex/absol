@@ -7,7 +7,7 @@ import (
 
 func GetGuild(ds *discordgo.Session, guildId string) *discordgo.Guild {
 	g, err := ds.State.Guild(guildId)
-	if err != nil {
+	if err != nil || g.Name == "" {
 		// Try fetching via REST API
 		g, err = ds.Guild(guildId)
 		if err != nil {

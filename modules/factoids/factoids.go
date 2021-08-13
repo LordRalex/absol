@@ -3,11 +3,11 @@ package factoids
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"github.com/jinzhu/gorm"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 )
@@ -70,7 +70,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	var data []factoid
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
-	if gorm.IsRecordNotFoundError(err) || (err == nil && len(data) == 0) {
+	if gorm.ErrRecordNotFound == err || (err == nil && len(data) == 0) {
 		err = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found")
 		return
 	} else if err != nil {

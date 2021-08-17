@@ -7,6 +7,7 @@ and
 !?f or !?factoid (up to 5 factoids) (pings)
 
 HJT or [HiJackThis](https://minecrafthopper.net/help/hjt/) is a tool used for obtaining diagnostic reports from your PC.
+
 F or Factoid is used for sending large amounts of info in short snappy commands, you can find a list of factoids [here](https://cp.minecrafthopper.net/factoids).
 
 ## Building Absol

@@ -21,8 +21,8 @@ before
 ENTRYPOINT ["/go/bin/absol"]
 ```
 ### Linux
-Run `sudo docker build -t absol .` and if it dosent find any errors you should see `Successfully built`.
-Then you can start the docker container by running `sudo docker run -it absol`
+Run `docker build -t absol .` and if it dosent find any errors you should see `Successfully built`.
+Then you can start the docker container by running `docker run -it absol`
 
 ### Windows
 Run `docker build -t absol .` and if it dosent find any errors you should see `Successfully built`.

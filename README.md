@@ -1,5 +1,5 @@
 # Absol
-Absol is a Discord bot created for the purpose of helping around in [Minecraft Community Support](https://discord.gg/58Sxm23).
+Absol is a Discord bot created for many purposes, one of them being helping around in [Minecraft Community Support](https://discord.gg/58Sxm23).
 
 Absol's main functions are: 
 !?hjt (link) 

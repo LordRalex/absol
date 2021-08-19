@@ -112,14 +112,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	message += strings.Join(factoidsListPaginated[pageNumber], "")
 
 	// let the user know total number of pages (provided there are enough results for that)
+	footer := ""
 	if len(factoidsListPaginated) != 1 {
-		message += "There are " + strconv.Itoa(len(factoidsListPaginated)) + " total pages."
+		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(len(factoidsListPaginated)) + ". Type !?s " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 	}
 
 	embed := &discordgo.MessageEmbed{
 		Description: message,
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "I am a bot, I will not respond to you. Command issued by " + mc.Author.Username + "#" + mc.Author.Discriminator,
+			Text: footer,
 		},
 	}
 

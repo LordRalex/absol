@@ -9,6 +9,7 @@ import (
 	"github.com/lordralex/absol/modules/factoids"
 	"github.com/lordralex/absol/modules/hjt"
 	"github.com/lordralex/absol/modules/log"
+	"github.com/lordralex/absol/modules/search"
 	"github.com/lordralex/absol/modules/twitch"
 	"strings"
 )
@@ -31,6 +32,8 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["factoids"] = &factoids.Module{}
 		case "hjt":
 			loadedModules["hjt"] = &hjt.Module{}
+		case "search":
+			loadedModules["search"] = &search.Module{}
 		default:
 			logger.Err().Printf("No module with name %s\n", v)
 		}

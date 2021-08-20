@@ -7,6 +7,7 @@ import (
 	"github.com/iverly/go-mcping/mcping"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/modules/factoids"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
 }
 
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
+func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, args []string) {
 	if len(args) == 0 {
 		return
 	}
@@ -36,10 +37,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	if len(connectionSlice) == 2 {
 		port, err = strconv.Atoi(connectionSlice[1])
 		if err != nil {
-			_, err := ds.ChannelMessageSend(mc.ChannelID, "That's not a valid port!")
-			if err != nil {
-				return
-			}
+			err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "That's not a valid port!")
 			return
 		}
 	}
@@ -47,10 +45,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	pinger := mcping.NewPinger()
 	response, err := pinger.Ping(connectionSlice[0], uint16(port))
 	if err != nil {
-		_, err := ds.ChannelMessageSend(mc.ChannelID, "Connecting to the server failed.")
-		if err != nil {
-			return
-		}
+		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Connecting to the server failed.")
 		return
 	}
 

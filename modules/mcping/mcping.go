@@ -42,13 +42,16 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		}
 	}
 
+	// set up pinger
 	pinger := mcping.NewPinger()
-	response, err := pinger.Ping(connectionSlice[0], uint16(port))
+	response, err := pinger.PingWithTimeout(connectionSlice[0], uint16(port), 5)
 	if err != nil {
+		// if it takes more then fice seconds to ping, then the server is probably down
 		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Connecting to the server failed.")
 		return
 	}
 
+	// set up the embed
 	var fields []*discordgo.MessageEmbedField
 	fields = append(fields, &discordgo.MessageEmbedField{
 		Name:   "Latency",
@@ -75,6 +78,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		Inline: false,
 	})
 
+	// add image to embed
 	embed := &discordgo.MessageEmbed{
 		Title: "Ping response from `" + strings.Join(args, "") + "`",
 		Image: &discordgo.MessageEmbedImage{
@@ -83,6 +87,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		Fields: fields,
 	}
 
+	// add server favicon to the message
 	var files []*discordgo.File
 	if response.Favicon != "" {
 		files = append(files, &discordgo.File{

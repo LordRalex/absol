@@ -75,7 +75,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	}
 
 	// ensures that page number is valid
-	if pageNumber < 0 || pageNumber >= len(factoidsList) {
+	if pageNumber < 0 || pageNumber >= int(rows) {
 		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Page index out of range.")
 		if err != nil {
 			return
@@ -83,18 +83,21 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		return
 	}
 
+	// actually put the factoids into one string
 	for _, factoid := range factoidsList {
 		message += "**" + factoid.Name + "**" + "```" + factoids.CleanupFactoid(factoid.Content) + "```\n"
 	}
 
+	// add footer with page numbers
 	footer := ""
-	if len(factoidsList) != 1 {
+	if rows != 1 {
 		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max) + ". "
 		if pageNumber+1 < len(factoidsList) {
 			footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 		}
 	}
 
+	// prepare embed
 	embed := &discordgo.MessageEmbed{
 		Description: message,
 		Footer: &discordgo.MessageEmbedFooter{

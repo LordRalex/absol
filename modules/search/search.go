@@ -24,16 +24,15 @@ func (*Module) Load(ds *discordgo.Session) {
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, args []string) {
 	if len(args) == 0 {
-		err := factoids.SendWithSelfDelete(ds, mc.ChannelID, "You must specify a search string!")
-		if err != nil {
-			return
-		}
+		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "You must specify a search string!")
 		return
 	} else if len(strings.Join(args, "")) < 3 {
-		err := factoids.SendWithSelfDelete(ds, mc.ChannelID, "Your search is too short!")
-		if err != nil {
-			return
-		}
+		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Your search is too short!")
+		return
+	}
+
+	if mc.GuildID != "" {
+		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "This command may only be used in DMs.")
 		return
 	}
 

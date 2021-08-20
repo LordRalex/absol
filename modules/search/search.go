@@ -23,16 +23,16 @@ func (*Module) Load(ds *discordgo.Session) {
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, args []string) {
+	if mc.GuildID != "" {
+		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "This command may only be used in DMs.")
+		return
+	}
+
 	if len(args) == 0 {
 		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "You must specify a search string!")
 		return
 	} else if len(strings.Join(args, "")) < 3 {
 		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Your search is too short!")
-		return
-	}
-
-	if mc.GuildID != "" {
-		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "This command may only be used in DMs.")
 		return
 	}
 
@@ -62,21 +62,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	// searches through results for a match
 	// gets the factoids table
 	var factoidsList []factoids.Factoid
-	db.Raw("SELECT * FROM factoids WHERE content LIKE ?", "%"+strings.Join(args, " ")+"%").Scan(&factoidsList)
-
-	// splits results into groups of the env variable "factoids.max" for the paginator
-	var factoidsListPaginated [][]factoids.Factoid
-	for i := 0; i < len(factoidsList); i += max {
-		smallSlice := make([]factoids.Factoid, 0, max)
-		for j := i; j < i+max && j < len(factoidsList); j++ {
-			smallSlice = append(smallSlice, factoidsList[j])
-		}
-
-		factoidsListPaginated = append(factoidsListPaginated, smallSlice)
-	}
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Find(&factoidsList)
 
 	// if the message is empty let them know nothing was found
-	if len(factoidsListPaginated) == 0 {
+	if len(factoidsList) == 0 {
 		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "No matches found.")
 		if err != nil {
 			return
@@ -85,7 +74,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	}
 
 	// ensures that page number is valid
-	if pageNumber < 0 || pageNumber >= len(factoidsListPaginated) {
+	if pageNumber < 0 || pageNumber >= len(factoidsList) {
 		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Page index out of range.")
 		if err != nil {
 			return
@@ -93,15 +82,15 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		return
 	}
 
-	for _, factoid := range factoidsListPaginated[pageNumber] {
+	for _, factoid := range factoidsList {
 		message += "**" + factoid.Name + "**" + "```" + factoids.CleanupFactoid(factoid.Content) + "```\n"
 	}
 
 	footer := ""
-	if len(factoidsListPaginated) != 1 {
-		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(len(factoidsListPaginated)) + ". "
-		if pageNumber+1 < len(factoidsListPaginated) {
-			footer += "Type !?s " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
+	if len(factoidsList) != 1 {
+		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(len(factoidsList)) + ". "
+		if pageNumber+1 < len(factoidsList) {
+			footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 		}
 	}
 

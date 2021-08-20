@@ -63,20 +63,21 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	// gets the factoids table
 	var factoidsList []factoids.Factoid
 	var rows int64
-	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber*max + 1).Limit(max).Find(&factoidsList).Count(&rows)
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber * max).Limit(max).Find(&factoidsList)
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Table("factoids").Count(&rows) // this is a different query anyway so it just needs to be a seperate line to get the total number of results
 
-	// if the message is empty let them know nothing was found
-	if len(factoidsList) == 0 {
-		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "No matches found.")
+	// ensures that page number is valid
+	if pageNumber < 0 || pageNumber > int(rows)/max+1 {
+		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Page index out of range.")
 		if err != nil {
 			return
 		}
 		return
 	}
 
-	// ensures that page number is valid
-	if pageNumber < 0 || pageNumber >= int(rows) {
-		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Page index out of range.")
+	// if the message is empty let them know nothing was found
+	if len(factoidsList) == 0 {
+		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "No matches found.")
 		if err != nil {
 			return
 		}
@@ -91,8 +92,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	// add footer with page numbers
 	footer := ""
 	if rows != 1 {
-		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max) + ". "
-		if pageNumber+1 < len(factoidsList) {
+		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max+1) + ". "
+		if pageNumber+1 < int(rows)/max+1 {
 			footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 		}
 	}

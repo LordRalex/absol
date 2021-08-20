@@ -62,7 +62,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	// searches through results for a match
 	// gets the factoids table
 	var factoidsList []factoids.Factoid
-	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Find(&factoidsList)
+	var rows int64
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber*max + 1).Limit(max).Find(&factoidsList).Count(&rows)
 
 	// if the message is empty let them know nothing was found
 	if len(factoidsList) == 0 {
@@ -88,7 +89,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	footer := ""
 	if len(factoidsList) != 1 {
-		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(len(factoidsList)) + ". "
+		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max) + ". "
 		if pageNumber+1 < len(factoidsList) {
 			footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 		}

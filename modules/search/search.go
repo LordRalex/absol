@@ -29,10 +29,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	}
 
 	if len(args) == 0 {
-		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "You must specify a search string!")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "You must specify a search string!")
 		return
 	} else if len(strings.Join(args, "")) < 3 {
-		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Your search is too short!")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Your search is too short!")
 		return
 	}
 
@@ -43,7 +43,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	db, err := database.Get()
 	if err != nil {
-		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Failed to connect to database")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		return
 	}
@@ -68,7 +68,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	// ensures that page number is valid
 	if pageNumber < 0 || pageNumber > int(rows)/max+1 {
-		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Page index out of range.")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Page index out of range.")
 		if err != nil {
 			return
 		}
@@ -77,7 +77,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	// if the message is empty let them know nothing was found
 	if len(factoidsList) == 0 {
-		err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "No matches found.")
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "No matches found.")
 		if err != nil {
 			return
 		}

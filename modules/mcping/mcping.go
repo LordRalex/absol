@@ -7,10 +7,10 @@ import (
 	"github.com/iverly/go-mcping/mcping"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/lordralex/absol/modules/factoids"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Module struct {
@@ -25,8 +25,10 @@ func (*Module) Load(ds *discordgo.Session) {
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, args []string) {
 	if len(args) == 0 {
+		_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "Usage: `!?mcping (address)`", mc.MessageReference)
 		return
 	}
+	_ = ds.ChannelTyping(mc.ChannelID)
 
 	connectionSlice := strings.Split(args[0], ":")
 
@@ -37,17 +39,17 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	if len(connectionSlice) == 2 {
 		port, err = strconv.Atoi(connectionSlice[1])
 		if err != nil {
-			err = factoids.SendWithSelfDelete(ds, mc.ChannelID, "That's not a valid port!")
+			_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "That's not a valid port!", mc.Reference())
 			return
 		}
 	}
 
 	// set up pinger
 	pinger := mcping.NewPinger()
-	response, err := pinger.PingWithTimeout(connectionSlice[0], uint16(port), 5)
+	response, err := pinger.PingWithTimeout(connectionSlice[0], uint16(port), 5*time.Second)
 	if err != nil {
-		// if it takes more then fice seconds to ping, then the server is probably down
-		_ = factoids.SendWithSelfDelete(ds, mc.ChannelID, "Connecting to the server failed.")
+		// if it takes more than five seconds to ping, then the server is probably down
+		_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "Connecting to the server failed.", mc.Reference())
 		return
 	}
 
@@ -100,8 +102,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	}
 
 	send := &discordgo.MessageSend{
-		Embed: embed,
-		Files: files,
+		Embed:     embed,
+		Files:     files,
+		Reference: mc.Reference(),
 	}
 
 	_, err = ds.ChannelMessageSendComplex(mc.ChannelID, send)

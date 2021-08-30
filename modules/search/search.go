@@ -36,6 +36,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		return
 	}
 
+	ds.ChannelTyping(mc.ChannelID)
+
 	max := viper.GetInt("factoids.max")
 	if max == 0 {
 		max = 5
@@ -68,20 +70,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	// ensures that page number is valid
 	if pageNumber < 0 || pageNumber > int(rows)/max+1 {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Page index out of range.")
-		if err != nil {
-			return
-		}
-		return
-	}
-
-	// if the message is empty let them know nothing was found
-	if len(factoidsList) == 0 {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "No matches found.")
-		if err != nil {
-			return
-		}
-		return
+		pageNumber = int(rows) - 1
 	}
 
 	// actually put the factoids into one string

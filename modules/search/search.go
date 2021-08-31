@@ -61,18 +61,19 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	}
 
 	message := ""
-	// searches through results for a match
-	// gets the factoids table
-	var factoidsList []factoids.Factoid
+	// gets how many rows there are
 	var rows int64
-	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber * max).Limit(max).Find(&factoidsList)
-	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Table("factoids").Count(&rows) // this is a different query anyway so it just needs to be a seperate line to get the total number of results
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Table("factoids").Count(&rows)
 
 	// ensures that page number is valid
 	if pageNumber < 0 || pageNumber > int(rows)/max+1 {
-		pageNumber = int(rows) - 1
+		pageNumber = 0
 	}
 
+	// searches through results for a match
+	// gets the factoids table
+	var factoidsList []factoids.Factoid
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber * max).Limit(max).Find(&factoidsList)
 	// actually put the factoids into one string
 	for _, factoid := range factoidsList {
 		message += "**" + factoid.Name + "**" + "```" + factoids.CleanupFactoid(factoid.Content) + "```\n"

@@ -36,8 +36,6 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		return
 	}
 
-	ds.ChannelTyping(mc.ChannelID)
-
 	max := viper.GetInt("factoids.max")
 	if max == 0 {
 		max = 5
@@ -73,7 +71,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	// searches through results for a match
 	// gets the factoids table
 	var factoidsList []factoids.Factoid
-	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Offset(pageNumber * max).Limit(max).Find(&factoidsList)
+	db.Where("content LIKE ? OR name LIKE ?", "%"+strings.Join(args, " ")+"%", "%"+strings.Join(args, " ")+"%").Order("name").Offset(pageNumber * max).Limit(max).Find(&factoidsList)
 	// actually put the factoids into one string
 	for _, factoid := range factoidsList {
 		message += "**" + factoid.Name + "**" + "```" + factoids.CleanupFactoid(factoid.Content) + "```\n"
@@ -81,11 +79,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	// add footer with page numbers
 	footer := ""
-	if rows != 1 {
-		footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max+1) + ". "
-		if pageNumber+1 < int(rows)/max+1 {
-			footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
-		}
+	footer = "Page " + strconv.Itoa(pageNumber+1) + "/" + strconv.Itoa(int(rows)/max+1) + ". "
+	if pageNumber+1 < int(rows)/max+1 {
+		footer += "Type !?search " + strings.Join(args, " ") + " " + strconv.Itoa(pageNumber+2) + " to see the next page."
 	}
 
 	// prepare embed

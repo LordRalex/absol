@@ -19,12 +19,12 @@ func RegisterIntentNeed(neededIntents ...discordgo.Intent) {
 	}
 }
 
-func GetIntent() *discordgo.Intent {
+func GetIntent() discordgo.Intent {
 	var intent discordgo.Intent
 
 	for _, v := range intents {
 		intent = intent | v
 	}
 
-	return discordgo.MakeIntent(intent)
+	return intent
 }

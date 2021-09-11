@@ -67,7 +67,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		return
 	}
 
-	var data []factoid
+	var data []Factoid
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
 	if gorm.ErrRecordNotFound == err || (err == nil && len(data) == 0) {
@@ -105,7 +105,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	for i, v := range factoids {
 		for _, o := range data {
 			if o.Name == v {
-				msg += cleanupFactoid(o.Content)
+				msg += CleanupFactoid(o.Content)
 				if i+1 != len(factoids) {
 					msg += "\n\n"
 				}
@@ -114,7 +114,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	header := ""
-	if len(mc.Message.Mentions) > 0 || mc.MessageReference != nil  {
+	if len(mc.Message.Mentions) > 0 || mc.MessageReference != nil {
 		//the golang set
 		mentions := make(map[string]bool, 0)
 
@@ -131,7 +131,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 			}
 		}
 
-		for k, _ := range mentions {
+		for k := range mentions {
 			header += "<@" + k + "> " + " "
 		}
 
@@ -173,7 +173,7 @@ func SendWithSelfDelete(ds *discordgo.Session, channelId, message string) error 
 	return nil
 }
 
-func cleanupFactoid(msg string) string {
+func CleanupFactoid(msg string) string {
 	msg = strings.Replace(msg, "[b]", "**", -1)
 	msg = strings.Replace(msg, "[/b]", "**", -1)
 	msg = strings.Replace(msg, "[u]", "__", -1)
@@ -195,7 +195,7 @@ func cleanupFactoid(msg string) string {
 	return msg
 }
 
-type factoid struct {
+type Factoid struct {
 	Name    string `gorm:"name"`
 	Content string `gorm:"content"`
 }

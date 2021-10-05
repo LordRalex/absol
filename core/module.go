@@ -8,6 +8,7 @@ import (
 	"github.com/lordralex/absol/modules/cleaner"
 	"github.com/lordralex/absol/modules/factoids"
 	"github.com/lordralex/absol/modules/hjt"
+	"github.com/lordralex/absol/modules/hyperlinkscanner"
 	"github.com/lordralex/absol/modules/log"
 	"github.com/lordralex/absol/modules/mcping"
 	"github.com/lordralex/absol/modules/search"
@@ -37,6 +38,8 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["search"] = &search.Module{}
 		case "mcping":
 			loadedModules["mcping"] = &mcping.Module{}
+		case "hyperscanner":
+			loadedModules["hyperscanner"] = &hyperlinkscanner.Module{}
 		default:
 			logger.Err().Printf("No module with name %s\n", v)
 		}

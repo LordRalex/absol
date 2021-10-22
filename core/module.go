@@ -39,7 +39,7 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 		case "mcping":
 			loadedModules["mcping"] = &mcping.Module{}
 		case "hyperscanner":
-			//loadedModules["hyperscanner"] = &hyperlinkscanner.Module{}
+			loadedModules["hyperscanner"] = &hyperlinkscanner.Module{}
 		default:
 			logger.Err().Printf("No module with name %s\n", v)
 		}

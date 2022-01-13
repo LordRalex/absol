@@ -15,5 +15,8 @@ FROM alpine
 
 COPY --from=builder /build/absol /go/bin/absol
 
+ENV DISCORD_TOKEN="YOUR DISCORD BOT TOKEN"
+ENV DATABASE=""
+
 ENTRYPOINT ["/go/bin/absol"]
 CMD ["alert", "cleaner", "factoids", "log", "twitch", "hjt", "search", "mcping"]

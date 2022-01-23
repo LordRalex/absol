@@ -72,12 +72,7 @@ func runTick(ds *discordgo.Session) {
 				continue
 			}
 
-			creationDate, err := m.Timestamp.Parse()
-			if err != nil {
-				continue
-			}
-
-			if creationDate.Before(cutOff) {
+			if m.Timestamp.Before(cutOff) {
 				messages = append(messages, m.ID)
 				if len(messages) > 20 {
 					break

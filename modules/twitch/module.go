@@ -10,5 +10,8 @@ type Module struct {
 }
 
 func (tm *Module) Load(session *discordgo.Session) {
+	api.RegisterIntentNeed(discordgo.IntentsGuildMessages)
+
 	api.RegisterCommand("twitchid", RunCommand)
+	api.RegisterCommand("twitchname", RunCommand)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/spf13/viper"
@@ -16,8 +17,6 @@ import (
 )
 
 var Client *http.Client
-
-const ApiUrl string = "https://api.twitch.tv/helix/users?login="
 
 var locker sync.RWMutex
 var accessToken string
@@ -41,15 +40,38 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	locker.RLock()
 	defer locker.RUnlock()
 
-	username := args[0]
+	param := args[0]
+	requestUrl := "https://api.twitch.tv/helix/users"
 
-	requestUrl := ApiUrl + username
+	if cmd == "twitchid" {
+		requestUrl += "?login=" + param
+	} else if cmd == "twitchname" {
+		requestUrl += "?id=" + param
+	} else {
 
+	}
+
+	data, err := callTwitch(requestUrl)
+	if err != nil {
+		logger.Err().Printf("unable to call twitch url %s\n%s", requestUrl, err)
+		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info")
+		return
+	}
+
+	if data.Data == nil {
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info")
+	} else if len(data.Data) == 0 {
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "No such user")
+	} else {
+		user := data.Data[0]
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Display Name: %s\nLogin: %s\nID: %s", user.DisplayName, user.Login, user.Id))
+	}
+}
+
+func callTwitch(requestUrl string) (data TwitchApi, err error) {
 	req := &http.Request{}
 	req.URL, err = url.Parse(requestUrl)
 	if err != nil {
-		logger.Err().Printf("unable to parse url %s\n%s", requestUrl, err)
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Username does not seem like it's valid")
 		return
 	}
 
@@ -62,8 +84,6 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	response, err := Client.Do(req)
 	if err != nil {
-		logger.Err().Printf("unable to call twitch API\n%s", err)
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
 		return
 	}
 	defer func() {
@@ -72,22 +92,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		}
 	}()
 
-	data := &TwitchApi{}
-	err = json.NewDecoder(response.Body).Decode(data)
-
-	if err != nil {
-		logger.Err().Printf("unable to call twitch API\n%s", err)
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
-		return
-	}
-
-	if data.Data == nil {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info, contact the admin")
-	} else if len(data.Data) == 0 {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "No such user called "+username)
-	} else {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, username+": "+data.Data[0].Id)
-	}
+	err = json.NewDecoder(response.Body).Decode(&data)
+	return
 }
 
 func refreshToken() error {

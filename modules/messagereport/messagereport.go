@@ -1,11 +1,14 @@
 package messagereport
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"log"
-	"os"
+	"github.com/lordralex/absol/api/logger"
+	"github.com/spf13/viper"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -15,9 +18,13 @@ type Module struct {
 }
 
 var guilds = make(map[string]string)
+var client = &http.Client{}
+var appId string
 
 func (*Module) Load(ds *discordgo.Session) {
-	maps := strings.Split(os.Getenv("MESSAGEREPORT_GUILDS"), ";")
+	appId = viper.GetString("app.id")
+
+	maps := strings.Split(viper.GetString("MESSAGEREPORT_GUILDS"), ";")
 	for _, v := range maps {
 		if v == "" {
 			continue
@@ -31,17 +38,41 @@ func (*Module) Load(ds *discordgo.Session) {
 
 	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		for k, _ := range guilds {
-			fmt.Printf("Registering %s for guild %s\n", reportOperation.Name, k)
+			logger.Out().Printf("Registering %s for guild %s\n", reportOperation.Name, k)
 			_, err := s.ApplicationCommandCreate(appId, k, reportOperation)
 			if err != nil {
-				log.Printf("Cannot create slash command %q: %v", reportOperation.Name, err)
+				logger.Err().Printf("Cannot create slash command %q: %v", reportOperation.Name, err)
 			}
 		}
 	})
 
 	ds.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.ApplicationCommandData().Name == reportOperation.Name {
-			submitReport(s, i)
+		switch i.Type {
+		case discordgo.InteractionApplicationCommand:
+			{
+				if i.ApplicationCommandData().Name == reportOperation.Name {
+					submitReport(s, i)
+				}
+			}
+		case discordgo.InteractionMessageComponent:
+			{
+				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Processing",
+					},
+				})
+				id := i.Interaction.MessageComponentData().CustomID
+				if strings.HasPrefix(id, "delete-") {
+					deleteMessage(s, i.Interaction, id)
+				} else if strings.HasPrefix(id, "mute-") {
+					muteUser(s, i.Interaction, id)
+				} else if strings.HasPrefix(id, "ban-") {
+					banUser(s, i.Interaction, id)
+				} else {
+					_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unknown action"})
+				}
+			}
 		}
 	})
 }
@@ -50,8 +81,6 @@ var reportOperation = &discordgo.ApplicationCommand{
 	Name: "report-message",
 	Type: discordgo.MessageApplicationCommand,
 }
-
-var appId = os.Getenv("APP_ID")
 
 func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	var err error
@@ -97,7 +126,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		})
 
 		if err != nil {
-			log.Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
+			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
 			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
 			return
 		}
@@ -120,35 +149,50 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 		embeds = append(embeds, message.Embeds...)
 
-		_, err = s.ChannelMessageSendComplex(channel.ID, &discordgo.MessageSend{
+		files := make([]*discordgo.File, 0)
+		for _, v := range message.Attachments {
+			file, err := getFile(v.URL)
+			if err != nil {
+				logger.Err().Printf("Error downloading %s: %s\n", v.URL, err.Error())
+				continue
+			}
+			files = append(files, &discordgo.File{
+				Name:        v.Filename,
+				ContentType: "application/octet-stream",
+				Reader:      file,
+			})
+		}
+
+		m := &discordgo.MessageSend{
 			Content: "Report submitted by " + i.Member.Mention(),
+			Files:   files,
 			Embeds:  embeds,
-			Components: []discordgo.MessageComponent{discordgo.Button{
-				Emoji: discordgo.ComponentEmoji{
-					Name: "",
-				},
-				Label: "Delete Message",
-				Style: discordgo.LinkButton,
-			}, discordgo.Button{
-				Emoji: discordgo.ComponentEmoji{
-					Name: "",
-				},
-				Label: "Mute User",
-				Style: discordgo.LinkButton,
-			}, discordgo.Button{
-				Emoji: discordgo.ComponentEmoji{
-					Name: "",
-				},
-				Label: "Ban User",
-				Style: discordgo.LinkButton,
-			}},
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{discordgo.Button{
+						CustomID: "delete-" + message.ID + "-" + message.ChannelID,
+						Label:    "Delete Message",
+						Style:    discordgo.PrimaryButton,
+					}, discordgo.Button{
+						CustomID: "mute-" + message.ID + "-" + i.Member.User.ID,
+						Label:    "Mute User",
+						Style:    discordgo.SecondaryButton,
+					}, discordgo.Button{
+						CustomID: "ban-" + message.ID + "-" + i.Member.User.ID,
+						Label:    "Ban User",
+						Style:    discordgo.DangerButton,
+					}}},
+			},
+
 			AllowedMentions: &discordgo.MessageAllowedMentions{
 				Parse: []discordgo.AllowedMentionType{},
 			},
-		})
+		}
+
+		_, err = s.ChannelMessageSendComplex(channel.ID, m)
 
 		if err != nil {
-			log.Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
+			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
 			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
 			return
 		}
@@ -160,11 +204,43 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 		})
 		if err != nil {
-			log.Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
+			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
 			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
 			return
 		}
 	}
 
 	_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Report submitted"})
+}
+
+func deleteMessage(s *discordgo.Session, i *discordgo.Interaction, customId string) {
+	data := strings.Split(customId, "-")
+	channelId := data[2]
+	messageId := data[1]
+
+	err := s.ChannelMessageDelete(channelId, messageId)
+	if err != nil {
+		_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Failed to delete message"})
+	} else {
+		_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Message deleted"})
+	}
+}
+
+func muteUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
+
+}
+
+func banUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
+
+}
+
+func getFile(url string) (io.Reader, error) {
+	response, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(response.Body)
+	return &buf, err
 }

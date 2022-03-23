@@ -3,7 +3,7 @@ module github.com/lordralex/absol
 go 1.15
 
 require (
-	github.com/bwmarrin/discordgo v0.23.3-0.20211228023845-29269347e820
+	github.com/bwmarrin/discordgo v0.24.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/iverly/go-mcping v1.0.0

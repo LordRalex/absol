@@ -1,12 +1,12 @@
 ###
 # Builder to compile our golang code
 ###
-FROM golang:1.17-alpine AS builder
+FROM golang:1.18-alpine AS builder
 
 WORKDIR /build
 COPY . .
 
-RUN go build -o absol -v github.com/lordralex/absol/core
+RUN go build -o absol -buildvcs=false -v github.com/lordralex/absol/core
 
 ###
 # Now generate our smaller image

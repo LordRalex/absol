@@ -69,6 +69,8 @@ func (*Module) Load(ds *discordgo.Session) {
 					muteUser(s, i.Interaction, id)
 				} else if strings.HasPrefix(id, "ban-") {
 					banUser(s, i.Interaction, id)
+				} else if strings.HasPrefix(id, "close-") {
+					closeReport(s, i.Interaction, id)
 				} else {
 					_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unknown action"})
 				}
@@ -109,7 +111,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	for _, v := range channels {
-		if v.Name == message.ID {
+		if v.ParentID == guilds[guild.ID] && v.Name == message.ID {
 			channel = v
 			break
 		}
@@ -182,8 +184,13 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 						Label:    "Ban User",
 						Style:    discordgo.DangerButton,
 					}}},
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{discordgo.Button{
+						CustomID: "close-" + message.ID,
+						Label:    "Close Report",
+						Style:    discordgo.PrimaryButton,
+					}}},
 			},
-
 			AllowedMentions: &discordgo.MessageAllowedMentions{
 				Parse: []discordgo.AllowedMentionType{},
 			},
@@ -227,11 +234,29 @@ func deleteMessage(s *discordgo.Session, i *discordgo.Interaction, customId stri
 }
 
 func muteUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
-
+	_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Muting is not supported"})
 }
 
 func banUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
+	_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Banning is not supported"})
+}
 
+func closeReport(s *discordgo.Session, i *discordgo.Interaction, customId string) {
+	messageId := strings.Split(customId, "-")[1]
+
+	guild := api.GetGuild(s, i.GuildID)
+	channels, err := s.GuildChannels(guild.ID)
+	if err != nil {
+		_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Closing report failed"})
+		return
+	}
+
+	for _, v := range channels {
+		if v.ParentID == guilds[guild.ID] && v.Name == messageId {
+			_, _ = s.ChannelDelete(v.ID)
+			break
+		}
+	}
 }
 
 func getFile(url string) (io.Reader, error) {

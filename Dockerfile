@@ -1,7 +1,7 @@
 ###
 # Builder to compile our golang code
 ###
-FROM golang:alpine AS builder
+FROM golang:1.17-alpine AS builder
 
 WORKDIR /build
 COPY . .

@@ -49,7 +49,7 @@ func main() {
 
 	LoadModule(Session, modules)
 
-	OpenConnection(token)
+	OpenConnection()
 
 	// Wait for a CTRL-C
 	fmt.Println(`Now running. Press CTRL-C to exit.`)
@@ -59,7 +59,7 @@ func main() {
 	fmt.Println("Shutting down")
 }
 
-func OpenConnection(token string) {
+func OpenConnection() {
 	Session.Identify.Intents = api.GetIntent()
 
 	EnableCommands(Session)

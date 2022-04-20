@@ -21,6 +21,17 @@ var guilds = make(map[string]string)
 var client = &http.Client{}
 var appId string
 
+var actionMap = map[string]func(session *discordgo.Session, interaction *discordgo.Interaction, id *InteractionId){
+	"delete":      deleteMessage,
+	"mute":        sendConfirmation,
+	"confirmmute": confirmMuteUser,
+	"cancelmute":  cancelConfirmation,
+	"ban":         sendConfirmation,
+	"confirmban":  confirmBanUser,
+	"cancelban":   cancelConfirmation,
+	"close":       closeReport,
+}
+
 func (*Module) Load(ds *discordgo.Session) {
 	appId = viper.GetString("app.id")
 
@@ -57,20 +68,17 @@ func (*Module) Load(ds *discordgo.Session) {
 		case discordgo.InteractionMessageComponent:
 			{
 				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Processing",
-					},
+					Type: discordgo.InteractionResponseDeferredMessageUpdate,
 				})
 				id := i.Interaction.MessageComponentData().CustomID
-				if strings.HasPrefix(id, "delete-") {
-					deleteMessage(s, i.Interaction, id)
-				} else if strings.HasPrefix(id, "mute-") {
-					muteUser(s, i.Interaction, id)
-				} else if strings.HasPrefix(id, "ban-") {
-					banUser(s, i.Interaction, id)
-				} else if strings.HasPrefix(id, "close-") {
-					closeReport(s, i.Interaction, id)
+
+				customId := &InteractionId{}
+				customId.FromString(id)
+
+				fun, ok := actionMap[customId.Action]
+
+				if ok && fun != nil {
+					fun(s, i.Interaction, customId)
 				} else {
 					_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unknown action"})
 				}
@@ -102,19 +110,10 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	guild := api.GetGuild(s, i.GuildID)
-	var channel *discordgo.Channel
-	channels, err := s.GuildChannels(guild.ID)
+	channel, err := getChannelForReport(s, i.GuildID, messageId)
 	if err != nil {
 		_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
 		return
-	}
-
-	for _, v := range channels {
-		if v.ParentID == guilds[guild.ID] && v.Name == message.ID {
-			channel = v
-			break
-		}
 	}
 
 	firstReport := true
@@ -123,7 +122,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Name:     message.ID,
 			Type:     discordgo.ChannelTypeGuildText,
 			Topic:    "Reported Message - " + message.ID,
-			ParentID: guilds[guild.ID],
+			ParentID: guilds[i.GuildID],
 			NSFW:     false,
 		})
 
@@ -138,7 +137,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if firstReport {
 		embeds := []*discordgo.MessageEmbed{{
-			URL:         fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guild.ID, message.ChannelID, message.ID),
+			URL:         fmt.Sprintf("https://discord.com/channels/%s/%s/%s", i.GuildID, message.ChannelID, message.ID),
 			Title:       fmt.Sprintf("Message Link"),
 			Description: message.Content,
 			Timestamp:   message.Timestamp.Format(time.RFC3339),
@@ -172,21 +171,21 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Components: []discordgo.MessageComponent{
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{discordgo.Button{
-						CustomID: "delete-" + message.ID + "-" + message.ChannelID,
+						CustomID: (&InteractionId{Action: "delete", ChannelId: message.ChannelID, MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
 						Label:    "Delete Message",
 						Style:    discordgo.PrimaryButton,
 					}, discordgo.Button{
-						CustomID: "mute-" + message.ID + "-" + i.Member.User.ID,
+						CustomID: (&InteractionId{Action: "mute", MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
 						Label:    "Mute User",
 						Style:    discordgo.SecondaryButton,
 					}, discordgo.Button{
-						CustomID: "ban-" + message.ID + "-" + i.Member.User.ID,
+						CustomID: (&InteractionId{Action: "ban", MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
 						Label:    "Ban User",
 						Style:    discordgo.DangerButton,
 					}}},
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{discordgo.Button{
-						CustomID: "close-" + message.ID,
+						CustomID: (&InteractionId{Action: "close", MessageId: message.ID}).ToString(),
 						Label:    "Close Report",
 						Style:    discordgo.PrimaryButton,
 					}}},
@@ -220,30 +219,62 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Report submitted"})
 }
 
-func deleteMessage(s *discordgo.Session, i *discordgo.Interaction, customId string) {
-	data := strings.Split(customId, "-")
-	channelId := data[2]
-	messageId := data[1]
-
-	err := s.ChannelMessageDelete(channelId, messageId)
+func deleteMessage(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
+	err := s.ChannelMessageDelete(id.ChannelId, id.MessageId)
 	if err != nil {
-		_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Failed to delete message"})
+		_, _ = s.ChannelMessageSend(i.Message.ChannelID, "Failed to delete message, it may already be deleted")
+		return
 	} else {
-		_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Message deleted"})
+		_, _ = s.ChannelMessageSend(i.Message.ChannelID, "Message deleted by "+i.Member.User.Username)
 	}
+
+	toggleButton(s, i, "Delete Message")
 }
 
-func muteUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
-	_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Muting is not supported"})
+func sendConfirmation(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
+	confirm := id.Clone()
+	confirm.Action = "confirm" + id.Action
+
+	cancel := id.Clone()
+	cancel.Action = "cancel" + id.Action
+
+	m := &discordgo.WebhookEdit{
+		Content: "Confirm " + id.Action,
+		Components: []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{discordgo.Button{
+					CustomID: confirm.ToString(),
+					Label:    "Yes",
+					Style:    discordgo.DangerButton,
+				}, discordgo.Button{
+					CustomID: cancel.ToString(),
+					Label:    "No",
+					Style:    discordgo.SecondaryButton,
+				}}},
+		},
+		AllowedMentions: &discordgo.MessageAllowedMentions{
+			Parse: []discordgo.AllowedMentionType{},
+		},
+	}
+
+	_, _ = s.InteractionResponseEdit(appId, i, m)
 }
 
-func banUser(s *discordgo.Session, i *discordgo.Interaction, customId string) {
-	_, _ = s.InteractionResponseEdit(appId, i, &discordgo.WebhookEdit{Content: "Banning is not supported"})
+func confirmMuteUser(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
 }
 
-func closeReport(s *discordgo.Session, i *discordgo.Interaction, customId string) {
-	messageId := strings.Split(customId, "-")[1]
+func confirmBanUser(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
+}
 
+func cancelConfirmation(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
+	err := s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
+	if err != nil {
+		logger.Err().Println(err.Error())
+	}
+	_ = s.InteractionResponseDelete(appId, i)
+}
+
+func closeReport(s *discordgo.Session, i *discordgo.Interaction, id *InteractionId) {
 	guild := api.GetGuild(s, i.GuildID)
 	channels, err := s.GuildChannels(guild.ID)
 	if err != nil {
@@ -252,7 +283,7 @@ func closeReport(s *discordgo.Session, i *discordgo.Interaction, customId string
 	}
 
 	for _, v := range channels {
-		if v.ParentID == guilds[guild.ID] && v.Name == messageId {
+		if v.ParentID == guilds[guild.ID] && v.Name == id.MessageId {
 			_, _ = s.ChannelDelete(v.ID)
 			break
 		}
@@ -268,4 +299,51 @@ func getFile(url string) (io.Reader, error) {
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(response.Body)
 	return &buf, err
+}
+
+func getChannelForReport(s *discordgo.Session, guildId string, messageId string) (*discordgo.Channel, error) {
+	guild := api.GetGuild(s, guildId)
+	var channel *discordgo.Channel
+	channels, err := s.GuildChannels(guild.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range channels {
+		if v.ParentID == guilds[guild.ID] && v.Name == messageId {
+			channel = v
+			break
+		}
+	}
+
+	return channel, nil
+}
+
+func toggleButton(s *discordgo.Session, i *discordgo.Interaction, buttonText string) {
+	originalMessage, err := s.ChannelMessage(i.Message.ChannelID, i.Message.ID)
+	if err != nil {
+		logger.Err().Println(err.Error())
+		return
+	}
+
+	edit := discordgo.NewMessageEdit(originalMessage.ChannelID, originalMessage.ID)
+	edit.Content = &originalMessage.Content
+	edit.Components = originalMessage.Components
+	edit.Embeds = originalMessage.Embeds
+
+	for _, v := range edit.Components {
+		if v.Type() == discordgo.ActionsRowComponent {
+			row := v.(*discordgo.ActionsRow)
+			for _, b := range row.Components {
+				if b.Type() == discordgo.ButtonComponent {
+					button := b.(*discordgo.Button)
+					if button.Label == buttonText {
+						button.Disabled = !button.Disabled
+					}
+				}
+			}
+		}
+	}
+
+	_, _ = s.ChannelMessageEditComplex(edit)
 }

@@ -3,10 +3,11 @@ package messagereport
 import "strings"
 
 type InteractionId struct {
-	Action    string
-	ChannelId string
-	MessageId string
-	UserId    string
+	Action                string
+	ChannelId             string
+	MessageId             string
+	UserId                string
+	PreviousInteractionId string
 }
 
 func (c *InteractionId) ToString() string {
@@ -23,6 +24,9 @@ func (c *InteractionId) ToString() string {
 	}
 	if c.UserId != "" {
 		parts = append(parts, "user:"+c.UserId)
+	}
+	if c.PreviousInteractionId != "" {
+		parts = append(parts, "previous:"+c.PreviousInteractionId)
 	}
 
 	return strings.Join(parts, "-")
@@ -55,15 +59,21 @@ func (c *InteractionId) FromString(source string) {
 				c.UserId = value
 				break
 			}
+		case "previous":
+			{
+				c.PreviousInteractionId = value
+			}
 		}
+
 	}
 }
 
 func (i *InteractionId) Clone() *InteractionId {
 	return &InteractionId{
-		Action:    i.Action,
-		ChannelId: i.ChannelId,
-		MessageId: i.MessageId,
-		UserId:    i.UserId,
+		Action:                i.Action,
+		ChannelId:             i.ChannelId,
+		MessageId:             i.MessageId,
+		UserId:                i.UserId,
+		PreviousInteractionId: i.PreviousInteractionId,
 	}
 }

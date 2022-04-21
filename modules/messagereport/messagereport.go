@@ -56,21 +56,31 @@ func (*Module) Load(ds *discordgo.Session) {
 			}
 		case discordgo.InteractionMessageComponent:
 			{
-				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Content: "Processing",
-					},
-				})
 				id := i.Interaction.MessageComponentData().CustomID
 
-				customId := &InteractionId{}
+				customId := &CustomId{}
 				customId.FromString(id)
 
 				action := getAction(customId.Action)
 
 				if action != nil {
+					raw := getRawAction(customId.Action)
+					if raw != nil {
+						toggleButton(s, i.Message.ChannelID, i.Message.ID, raw.ButtonText)
+					}
+				}
+
+				_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseDeferredMessageUpdate,
+				})
+
+				if action != nil {
 					action.Function(action, s, i.Interaction, customId)
+
+					//delete the confirmation request
+					if action.RequiresConfirmation {
+						_ = s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
+					}
 				} else {
 					_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unknown action"})
 				}
@@ -113,8 +123,8 @@ func getChannelForReport(s *discordgo.Session, guildId string, messageId string)
 	return channel, nil
 }
 
-func toggleButton(s *discordgo.Session, i *discordgo.Interaction, buttonText string) {
-	originalMessage, err := s.ChannelMessage(i.Message.ChannelID, i.Message.ID)
+func toggleButton(s *discordgo.Session, channelId string, messageId string, buttonText string) {
+	originalMessage, err := s.ChannelMessage(channelId, messageId)
 	if err != nil {
 		logger.Err().Println(err.Error())
 		return
@@ -220,25 +230,20 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Embeds:  embeds,
 			Components: []discordgo.MessageComponent{
 				discordgo.ActionsRow{
-					Components: []discordgo.MessageComponent{discordgo.Button{
-						CustomID: (&InteractionId{Action: deleteAction.Action, ChannelId: message.ChannelID, MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
-						Label:    deleteAction.ButtonText,
-						Style:    discordgo.PrimaryButton,
-					}, discordgo.Button{
-						CustomID: (&InteractionId{Action: muteAction.Action, MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
-						Label:    muteAction.ButtonText,
-						Style:    discordgo.SecondaryButton,
-					}, discordgo.Button{
-						CustomID: (&InteractionId{Action: banAction.Action, MessageId: message.ID, UserId: i.Member.User.ID}).ToString(),
-						Label:    banAction.ButtonText,
-						Style:    discordgo.DangerButton,
-					}}},
-				discordgo.ActionsRow{
-					Components: []discordgo.MessageComponent{discordgo.Button{
-						CustomID: (&InteractionId{Action: closeAction.Action, MessageId: message.ID}).ToString(),
-						Label:    closeAction.ButtonText,
-						Style:    discordgo.PrimaryButton,
-					}}},
+					Components: []discordgo.MessageComponent{
+						discordgo.Button{
+							CustomID: (&CustomId{Action: closeAction.Action}).ToString(),
+							Label:    closeAction.ButtonText,
+							Style:    discordgo.PrimaryButton,
+						}, discordgo.Button{
+							CustomID: (&CustomId{Action: deleteAction.Action, ChannelId: message.ChannelID, MessageId: message.ID}).ToString(),
+							Label:    deleteAction.ButtonText,
+							Style:    discordgo.DangerButton,
+						}, discordgo.Button{
+							CustomID: (&CustomId{Action: banAction.Action, UserId: message.Author.ID}).ToString(),
+							Label:    banAction.ButtonText,
+							Style:    discordgo.DangerButton,
+						}}},
 			},
 			AllowedMentions: &discordgo.MessageAllowedMentions{
 				Parse: []discordgo.AllowedMentionType{},

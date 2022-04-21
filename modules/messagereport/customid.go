@@ -1,16 +1,18 @@
 package messagereport
 
-import "strings"
+import (
+	"strings"
+)
 
-type InteractionId struct {
-	Action                string
-	ChannelId             string
-	MessageId             string
-	UserId                string
-	PreviousInteractionId string
+type CustomId struct {
+	Action        string
+	ChannelId     string
+	MessageId     string
+	UserId        string
+	BaseMessageId string
 }
 
-func (c *InteractionId) ToString() string {
+func (c *CustomId) ToString() string {
 	parts := make([]string, 0)
 
 	if c.Action != "" {
@@ -25,14 +27,14 @@ func (c *InteractionId) ToString() string {
 	if c.UserId != "" {
 		parts = append(parts, "user:"+c.UserId)
 	}
-	if c.PreviousInteractionId != "" {
-		parts = append(parts, "previous:"+c.PreviousInteractionId)
+	if c.BaseMessageId != "" {
+		parts = append(parts, "base:"+c.BaseMessageId)
 	}
 
 	return strings.Join(parts, "-")
 }
 
-func (c *InteractionId) FromString(source string) {
+func (c *CustomId) FromString(source string) {
 	for _, v := range strings.Split(source, "-") {
 		parts := strings.SplitN(v, ":", 2)
 		key := parts[0]
@@ -59,21 +61,20 @@ func (c *InteractionId) FromString(source string) {
 				c.UserId = value
 				break
 			}
-		case "previous":
+		case "base":
 			{
-				c.PreviousInteractionId = value
+				c.BaseMessageId = value
 			}
 		}
-
 	}
 }
 
-func (i *InteractionId) Clone() *InteractionId {
-	return &InteractionId{
-		Action:                i.Action,
-		ChannelId:             i.ChannelId,
-		MessageId:             i.MessageId,
-		UserId:                i.UserId,
-		PreviousInteractionId: i.PreviousInteractionId,
+func (c *CustomId) Clone() *CustomId {
+	return &CustomId{
+		Action:        c.Action,
+		ChannelId:     c.ChannelId,
+		MessageId:     c.MessageId,
+		UserId:        c.UserId,
+		BaseMessageId: c.BaseMessageId,
 	}
 }

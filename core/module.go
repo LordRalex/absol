@@ -11,7 +11,6 @@ import (
 	"github.com/lordralex/absol/modules/log"
 	"github.com/lordralex/absol/modules/mcping"
 	"github.com/lordralex/absol/modules/messagereport"
-	"github.com/lordralex/absol/modules/search"
 	"github.com/lordralex/absol/modules/twitch"
 	"strings"
 )
@@ -34,8 +33,6 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["factoids"] = &factoids.Module{}
 		case "hjt":
 			loadedModules["hjt"] = &hjt.Module{}
-		case "search":
-			loadedModules["search"] = &search.Module{}
 		case "mcping":
 			loadedModules["mcping"] = &mcping.Module{}
 		case "messagereport":

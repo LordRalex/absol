@@ -7,6 +7,7 @@ import (
 	"github.com/iverly/go-mcping/mcping"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
+	"github.com/spf13/viper"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,29 +18,80 @@ type Module struct {
 	api.Module
 }
 
-func (*Module) Load(ds *discordgo.Session) {
-	api.RegisterCommand("mcping", RunCommand)
+var appId string
 
-	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
+func (*Module) Load(ds *discordgo.Session) {
+	appId = viper.GetString("app.id")
+
+	var guilds []string
+
+	maps := strings.Split(viper.GetString("MCPING_GUILDS"), ";")
+	for _, v := range maps {
+		if v == "" {
+			continue
+		}
+
+		guilds = append(guilds, v)
+	}
+
+	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		for _, v := range guilds {
+			logger.Out().Printf("Registering %s for guild %s\n", mcpingOperation.Name, v)
+			_, err := s.ApplicationCommandCreate(appId, v, mcpingOperation)
+			if err != nil {
+				logger.Err().Printf("Cannot create slash command %q: %v", mcpingOperation.Name, err)
+			}
+		}
+	})
+
+	ds.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		switch i.Type {
+		case discordgo.InteractionApplicationCommand:
+			{
+				if i.ApplicationCommandData().Name == mcpingOperation.Name {
+					runCommand(s, i)
+				}
+			}
+		}
+	})
 }
 
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, args []string) {
-	if len(args) == 0 {
-		_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "Usage: `!?mcping (address)`", mc.MessageReference)
+var mcpingOperation = &discordgo.ApplicationCommand{
+	Name:        "mcping",
+	Description: "Checks to see if a server is online",
+	Type:        discordgo.ChatApplicationCommand,
+	Options: []*discordgo.ApplicationCommandOption{
+
+		{
+			Name:        "host",
+			Description: "IP:Port or Host of server",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+	},
+}
+
+func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+	if err != nil {
+		logger.Err().Println(err.Error())
 		return
 	}
-	_ = ds.ChannelTyping(mc.ChannelID)
 
-	connectionSlice := strings.Split(args[0], ":")
+	data := i.ApplicationCommandData().Options[0]
+	ip := data.StringValue()
+
+	connectionSlice := strings.Split(ip, ":")
 
 	port := 25565
-
-	var err error // prevent shadowing
-
 	if len(connectionSlice) == 2 {
 		port, err = strconv.Atoi(connectionSlice[1])
 		if err != nil {
-			_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "That's not a valid port!", mc.Reference())
+			_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+				Content: "That's not a valid port.",
+			})
 			return
 		}
 	}
@@ -49,7 +101,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 	response, err := pinger.PingWithTimeout(connectionSlice[0], uint16(port), 5*time.Second)
 	if err != nil {
 		// if it takes more than five seconds to ping, then the server is probably down
-		_, _ = ds.ChannelMessageSendReply(mc.ChannelID, "Connecting to the server failed.", mc.Reference())
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "Connecting to the server failed.",
+		})
 		return
 	}
 
@@ -82,7 +136,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 
 	// add image to embed
 	embed := &discordgo.MessageEmbed{
-		Title: "Ping response from `" + strings.Join(args, "") + "`",
+		Title: "Ping response from `" + ip + "`",
 		Image: &discordgo.MessageEmbedImage{
 			URL: "attachment://favicon.png",
 		},
@@ -101,13 +155,10 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, _ string, ar
 		files = nil
 	}
 
-	send := &discordgo.MessageSend{
-		Embed:     embed,
-		Files:     files,
-		Reference: mc.Reference(),
-	}
-
-	_, err = ds.ChannelMessageSendComplex(mc.ChannelID, send)
+	_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		Embeds: []*discordgo.MessageEmbed{embed},
+		Files:  files,
+	})
 	if err != nil {
 		logger.Err().Printf("Failed to send message\n%s", err)
 	}

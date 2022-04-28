@@ -125,7 +125,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if len(results) == 0 {
 		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "No matches found",
+			Content: "Report for " + pasteLink + "\nNo matches found",
 		})
 		return
 	}
@@ -140,7 +140,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	message := ""
+	message := "Report for " + pasteLink + "\n"
 	for i, v := range data {
 		if i != 0 {
 			message += "\n"

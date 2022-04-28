@@ -71,7 +71,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
 	if gorm.ErrRecordNotFound == err || (err == nil && len(data) == 0) {
-		err = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found")
+		err = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
 		return
 	} else if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)

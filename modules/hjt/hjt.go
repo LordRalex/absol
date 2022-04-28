@@ -5,38 +5,96 @@ import (
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 type Module struct {
 	api.Module
 }
 
-func (*Module) Load(ds *discordgo.Session) {
-	api.RegisterCommand("hjt", RunCommand)
+var appId string
 
-	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
+func (*Module) Load(ds *discordgo.Session) {
+	appId = viper.GetString("app.id")
+
+	var guilds []string
+
+	maps := strings.Split(viper.GetString("HJT_GUILDS"), ";")
+	for _, v := range maps {
+		if v == "" {
+			continue
+		}
+
+		guilds = append(guilds, v)
+	}
+
+	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		for _, v := range guilds {
+			logger.Out().Printf("Registering %s for guild %s\n", hjtOperation.Name, v)
+			_, err := s.ApplicationCommandCreate(appId, v, hjtOperation)
+			if err != nil {
+				logger.Err().Printf("Cannot create slash command %q: %v", hjtOperation.Name, err)
+			}
+		}
+	})
+
+	ds.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		switch i.Type {
+		case discordgo.InteractionApplicationCommand:
+			{
+				if i.ApplicationCommandData().Name == hjtOperation.Name {
+					runCommand(s, i)
+				}
+			}
+		}
+	})
 }
 
-func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
-	if len(args) == 0 {
+var hjtOperation = &discordgo.ApplicationCommand{
+	Name:        "hjt",
+	Description: "Checks a HJT report against a list of known problematic programs",
+	Type:        discordgo.ChatApplicationCommand,
+	Options: []*discordgo.ApplicationCommandOption{
+
+		{
+			Name:        "url",
+			Description: "URL to paste",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+	},
+}
+
+func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+	if err != nil {
+		logger.Err().Println(err.Error())
 		return
 	}
-	pasteLink := args[0]
+
+	pasteLink := i.ApplicationCommandData().Options[0].StringValue()
 
 	content, err := readFromUrl(pasteLink)
 	if err != nil {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Invalid URL")
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "Invalid URL",
+		})
 		return
 	}
 
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Failed to connect to database\n%s", err)
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "Failed to connect to database",
+		})
 		return
 	}
 
@@ -45,7 +103,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "Failed to connect to database",
+		})
 		return
 	}
 
@@ -53,7 +113,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	for _, v := range values {
 		matches, err := regexp.Match(v.MatchCriteria, content)
 		if err != nil {
-			_, _ = ds.ChannelMessageSend(mc.ChannelID, v.Name + " has a bad regex statement: " + err.Error())
+			_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+				Content: v.Name + " is an invalid regex statement: " + err.Error(),
+			})
 			return
 		}
 		if matches {
@@ -62,7 +124,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 
 	if len(results) == 0 {
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "No matches found for HJT")
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "No matches found",
+		})
 		return
 	}
 
@@ -70,7 +134,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	err = db.Find(&data, results).Order("severity desc").Error
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to connect to database")
+		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			Content: "Failed to connect to database",
+		})
 		return
 	}
 
@@ -81,7 +147,9 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		}
 		message += v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
-	_, _ = ds.ChannelMessageSend(mc.ChannelID, message)
+	_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		Content: message,
+	})
 }
 
 func readFromUrl(url string) ([]byte, error) {
@@ -100,12 +168,12 @@ func readFromUrl(url string) ([]byte, error) {
 }
 
 type HJT struct {
-	Id uint
-	Name string
+	Id            uint
+	Name          string
 	MatchCriteria string
-	Description string
-	Category string
-	Severity Severity
+	Description   string
+	Category      string
+	Severity      Severity
 	SeverityEmoji string `gorm:"-"`
 }
 

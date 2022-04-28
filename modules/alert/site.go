@@ -1,17 +1,12 @@
 package alert
 
 import (
-	"bytes"
-	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,7 +21,7 @@ type site struct {
 	Channels     string
 	AlertServer  []string `gorm:"-"`
 	Servers      string
-	Cookie       string   `gorm:"column:cookie_cobaltsession"`
+	Cookie       string `gorm:"column:cookie_cobaltsession"`
 	Domain       string
 	MaxErrors    int
 	Period       int
@@ -104,8 +99,6 @@ func (s *site) runTick(ds *discordgo.Session) {
 				importantErrors = append(importantErrors, e.Title)
 			}
 		}
-
-		s.isLoggable(e)
 	}
 
 	if importantErrors != nil && len(importantErrors) >= 0 {
@@ -118,10 +111,6 @@ func (s *site) runTick(ds *discordgo.Session) {
 }
 
 func (s *site) sendMessage(ds *discordgo.Session, msg string) {
-	logger.Out().Printf(msg)
-
-	logger.Debug().Printf("Sending message to server '%s' and channel '%s'", s.AlertServer, s.AlertChannel)
-
 	for _, v := range s.AlertChannel {
 		_, _ = ds.ChannelMessageSend(v, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
 		s.silent = true
@@ -257,71 +246,4 @@ func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
 	})
 
 	return
-}
-
-func submitToElastic(id string, data map[string]interface{}) error {
-	delete(data, "cookies")
-	delete(data, "host")
-	delete(data, "form")
-	if data["serverVariables"] != nil {
-		serverVars := data["serverVariables"].(map[string]interface{})
-		delete(serverVars, "ALL_HTTP")
-		delete(serverVars, "ALL_RAW")
-		delete(serverVars, "HTTP_COOKIE")
-		delete(serverVars, "AUTH_PASSWORD")
-
-		forwards := serverVars["HTTP_X_FORWARDED_FOR"]
-		if ips, ok := forwards.(string); ok && ips != "" {
-			ipList := strings.Split(ips, ",")
-			for k, v := range ipList {
-				ipList[k] = strings.TrimSpace(v)
-			}
-			serverVars["HTTP_X_FORWARDED_FOR"] = ipList
-		} else {
-			delete(serverVars, "HTTP_X_FORWARDED_FOR")
-		}
-	}
-	delete(data, "webHostHtmlMessage")
-	delete(data, "HTTP_COOKIE")
-
-	//convert query string to a standard string instead
-	qs := data["queryString"]
-	if qs != nil {
-		d, err := json.Marshal(qs)
-		if err != nil {
-			logger.Err().Printf("Failed to convert query string to json; %s\n", err.Error())
-			delete(data, "queryString")
-		} else {
-			queryString := bytes.NewBuffer(d).String()
-			data["queryString"] = queryString
-		}
-	} else {
-		delete(data, "queryString")
-	}
-
-	encoded, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	es, err := http.NewRequest("PUT", viper.GetString("elastic.url")+"/_doc/"+id, bytes.NewBuffer(encoded))
-	if err != nil {
-		return err
-	}
-	es.SetBasicAuth(viper.GetString("elastic.user"), viper.GetString("elastic.pass"))
-	es.Header.Set("Content-Type", "application/json")
-
-	response, err := client.Do(es)
-
-	defer func() {
-		if response != nil && response.Body != nil {
-			_ = response.Body.Close()
-		}
-	}()
-
-	if err == nil && !(response.StatusCode == 201 || response.StatusCode == 200) {
-		body, _ := ioutil.ReadAll(response.Body)
-		err = errors.New(fmt.Sprintf("Failed to save log (%s): %s", response.Status, body))
-	}
-
-	return err
 }

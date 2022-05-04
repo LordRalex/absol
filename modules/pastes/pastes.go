@@ -1,6 +1,8 @@
 package pastes
 
 import (
+	"strings"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
@@ -17,10 +19,22 @@ func (*Module) Load(ds *discordgo.Session) {
 	if viper.GetString("paste.url") == "" {
 		logger.Err().Fatal("Pastebin root url required to use pastes module!")
 	}
+	if viper.GetString("paste.guilds") == "" {
+		logger.Err().Fatal("At least one guild ID is required to use pastes module!")
+	}
 }
 
 func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	if len(mc.Attachments) <= 0 {
+		return
+	}
+	used := false
+	for _, item := range strings.Split(viper.GetString("paste.guilds"), " ") {
+		if item == mc.GuildID {
+			used = true
+		}
+	}
+	if !used {
 		return
 	}
 	rows := []discordgo.MessageComponent{}

@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"github.com/lordralex/absol/modules/pastes"
 	"github.com/spf13/viper"
 	"strings"
 )
@@ -28,7 +27,6 @@ func onMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	if mc.Author.ID == ds.State.User.ID {
 		return
 	}
-	pastes.HandleMessage(ds, mc)
 
 	if !strings.HasPrefix(mc.Message.Content, commandPrefix) {
 		return

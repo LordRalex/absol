@@ -11,8 +11,9 @@ type Module struct {
 	api.Module
 }
 
-func (*Module) Load(_ *discordgo.Session) {
+func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages)
+	ds.AddHandler(HandleMessage)
 	if viper.GetString("paste.url") == "" {
 		logger.Err().Fatal("Pastebin root url required to use pastes module!")
 	}
@@ -35,15 +36,15 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				URL:   viper.GetString("paste.url") + mc.ID + "/" + element.Filename,
 			}
 			row = append(row, btn)
-			if len(row) >= 5 || idx == len(mc.Attachments) {
+			if len(row) >= 5 || idx+1 == len(mc.Attachments) {
 				rows = append(rows, discordgo.ActionsRow{Components: row})
 				row = []discordgo.MessageComponent{}
 			}
 		}
 	}
 	msg := &discordgo.MessageSend{
-		Content:    "Web version of files from <@" + mc.Author.ID + ">",
-		Components: rows,
+		Content:         "Web version of files from <@" + mc.Author.ID + ">",
+		Components:      rows,
 		AllowedMentions: &discordgo.MessageAllowedMentions{},
 	}
 	_, err := ds.ChannelMessageSendComplex(mc.ChannelID, msg)

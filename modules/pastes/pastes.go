@@ -50,7 +50,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				URL:   viper.GetString("paste.url") + mc.ID + "/" + element.Filename,
 			}
 			row = append(row, btn)
-			if len(row) >= 5 || idx+1 == len(mc.Attachments) || len(row) > 0 {
+			if (len(row) >= 5 || idx+1 == len(mc.Attachments)) && len(row) > 0 {
 				rows = append(rows, discordgo.ActionsRow{Components: row})
 				row = []discordgo.MessageComponent{}
 			}

@@ -40,7 +40,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	rows := []discordgo.MessageComponent{}
 	row := []discordgo.MessageComponent{}
 	for idx, element := range mc.Attachments {
-		if element.ContentType == "text/plain; charset=utf-8" || element.ContentType == "application/json; charset=utf-8" {
+		if element.ContentType == "text/plain; charset=utf-8" || element.ContentType == "application/json; charset=utf-8" || element.ContentType == "text/html; charset=utf-8" {
 			btn := discordgo.Button{
 				Emoji: discordgo.ComponentEmoji{
 					Name: "📜",

@@ -1,6 +1,7 @@
 package pastes
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -47,7 +48,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   viper.GetString("paste.url") + '/' + mc.Channel.ID + '/' + mc.ID + '/' + element.Filename,
+				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("paste.url"), mc.Channel.ID, mc.ID, element.Filename),
 			}
 			row = append(row, btn)
 			if len(row) >= 5 {

@@ -29,7 +29,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 	used := false
-	for _, item := range strings.Split(viper.GetString("paste.guilds"), " ") {
+	for _, item := range strings.Split(viper.GetString("paste.guilds"), ";") {
 		if item == mc.GuildID {
 			used = true
 		}
@@ -47,14 +47,17 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   viper.GetString("paste.url") + mc.ID + "/" + element.Filename,
+				URL:   viper.GetString("paste.url") + '/' + mc.Channel.ID + '/' + mc.ID + '/' + element.Filename,
 			}
 			row = append(row, btn)
-			if (len(row) >= 5 || idx+1 == len(mc.Attachments)) && len(row) > 0 {
+			if len(row) >= 5 {
 				rows = append(rows, discordgo.ActionsRow{Components: row})
 				row = []discordgo.MessageComponent{}
 			}
 		}
+	}
+	if len(row) > 0 {
+		rows = append(rows, discordgo.ActionsRow{Components: row})
 	}
 	if len(rows) <= 0 {
 		return
@@ -63,6 +66,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		Content:         "Web version of files from <@" + mc.Author.ID + ">",
 		Components:      rows,
 		AllowedMentions: &discordgo.MessageAllowedMentions{},
+		Reference:       mc.Reference(),
 	}
 	_, err := ds.ChannelMessageSendComplex(mc.ChannelID, msg)
 	if err != nil {

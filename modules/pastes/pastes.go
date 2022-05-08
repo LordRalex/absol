@@ -40,7 +40,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	}
 	rows := []discordgo.MessageComponent{}
 	row := []discordgo.MessageComponent{}
-	for idx, element := range mc.Attachments {
+	for _, element := range mc.Attachments {
 		if element.ContentType == "text/plain; charset=utf-8" || element.ContentType == "application/json; charset=utf-8" || element.ContentType == "text/html; charset=utf-8" {
 			btn := discordgo.Button{
 				Emoji: discordgo.ComponentEmoji{
@@ -48,7 +48,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("paste.url"), mc.Channel.ID, mc.ID, element.Filename),
+				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("paste.url"), mc.ChannelID, mc.ID, element.Filename),
 			}
 			row = append(row, btn)
 			if len(row) >= 5 {

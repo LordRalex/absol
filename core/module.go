@@ -12,6 +12,7 @@ import (
 	"github.com/lordralex/absol/modules/mcping"
 	"github.com/lordralex/absol/modules/messagereport"
 	"github.com/lordralex/absol/modules/twitch"
+	"github.com/lordralex/absol/modules/pastes"
 	"strings"
 )
 
@@ -35,6 +36,8 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["hjt"] = &hjt.Module{}
 		case "mcping":
 			loadedModules["mcping"] = &mcping.Module{}
+		case "pastes":
+			loadedModules["pastes"] = &pastes.Module{}
 		case "messagereport":
 			loadedModules["messagereport"] = &messagereport.Module{}
 		default:

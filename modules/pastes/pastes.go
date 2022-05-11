@@ -17,6 +17,7 @@ type Module struct {
 func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages)
 	ds.AddHandler(HandleMessage)
+	ds.AddHandler(onDelete)
 	if viper.GetString("pastes.url") == "" {
 		logger.Err().Fatal("Paste root url required to use pastes module!")
 	}
@@ -70,5 +71,25 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	if err != nil {
 		logger.Err().Println(err.Error())
 		return
+	}
+}
+
+func onDelete(ds *discordgo.Session, md *discordgo.MessageDelete) {
+	deleteIfReferenced(ds, md.ChannelID, md.ID)
+}
+
+func deleteIfReferenced(ds *discordgo.Session, channel string, messageId string) {
+	messages, err := ds.ChannelMessages(channel, 5, "", messageId, "")
+	if err != nil {
+		return
+	}
+	for _, message := range messages {
+		if message.Author.ID == ds.State.User.ID {
+			if message.MessageReference != nil {
+				if message.MessageReference.MessageID == messageId {
+					_ = ds.ChannelMessageDelete(channel, message.ID)
+				}
+			}
+		}
 	}
 }

@@ -17,11 +17,8 @@ type Module struct {
 func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages)
 	ds.AddHandler(HandleMessage)
-	if viper.GetString("paste.url") == "" {
-		logger.Err().Fatal("Pastebin root url required to use pastes module!")
-	}
-	if viper.GetString("paste.guilds") == "" {
-		logger.Err().Fatal("At least one guild ID is required to use pastes module!")
+	if viper.GetString("pastes.url") == "" {
+		logger.Err().Fatal("Paste root url required to use pastes module!")
 	}
 }
 
@@ -30,7 +27,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 	used := false
-	for _, item := range strings.Split(viper.GetString("paste.guilds"), ";") {
+	for _, item := range strings.Split(viper.GetString("pastes.guilds"), ";") {
 		if item == mc.GuildID {
 			used = true
 		}
@@ -48,7 +45,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("paste.url"), mc.ChannelID, mc.ID, element.Filename),
+				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("pastes.url"), mc.ChannelID, mc.ID, element.Filename),
 			}
 			row = append(row, btn)
 			if len(row) >= 5 {

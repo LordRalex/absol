@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
+	"github.com/lordralex/absol/modules"
 	"github.com/spf13/viper"
 	"net/http"
 	"net/url"
@@ -21,7 +22,7 @@ func main() {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	modules := os.Args[1:]
+	m := os.Args[1:]
 
 	token := viper.GetString("discord.token")
 
@@ -47,7 +48,7 @@ func main() {
 	Session, _ = discordgo.New(token)
 	defer Session.Close()
 
-	LoadModule(Session, modules)
+	modules.Load(Session, m)
 
 	OpenConnection()
 

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/modules"
 	"github.com/spf13/viper"
 	"strings"
 )
@@ -46,9 +47,9 @@ func onMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 }
 
 func RunModuleCommand(session *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
-	modules := make([]string, 0)
-	for k := range loadedModules {
-		modules = append(modules, k)
+	m := make([]string, 0)
+	for k, _ := range modules.GetLoaded() {
+		m = append(m, k)
 	}
-	_, _ = session.ChannelMessageSend(mc.ChannelID, "Registered: "+strings.Join(modules, ", "))
+	_, _ = session.ChannelMessageSend(mc.ChannelID, "Registered: "+strings.Join(m, ", "))
 }

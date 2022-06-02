@@ -19,9 +19,15 @@ var createPollOperation = &discordgo.ApplicationCommand{
 		},
 		{
 			Name:        "choices",
+			Description: "Allowed choices",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    false,
+		},
+		{
+			Name:        "choices-file",
 			Description: "File containing allowed choices",
 			Type:        discordgo.ApplicationCommandOptionAttachment,
-			Required:    true,
+			Required:    false,
 		},
 		{
 			Name:        "description",
@@ -72,6 +78,10 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 			}
 		case "choices":
 			{
+				choices = strings.Split(v.StringValue(), " ")
+			}
+		case "choices-file":
+			{
 				fileId := v.Value.(string)
 				data, err := downloadFile(commandData.Resolved.Attachments[fileId].URL)
 				if err != nil {
@@ -79,24 +89,28 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 					return
 				}
 				choices = strings.Split(data, "\r\n")
-
-				if len(choices) > 15 {
-					_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Limit of 15 choices"})
-					return
-				}
-
-				if hasDupes(choices) {
-					_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices cannot repeat"})
-					return
-				}
-
-				for _, v := range choices {
-					if len(v) > 50 {
-						_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices can be at most 50 characters"})
-						return
-					}
-				}
 			}
+		}
+	}
+
+	if len(choices) < 2 {
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "You need at least 2 choices"})
+	}
+
+	if len(choices) > 15 {
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Limit of 15 choices"})
+		return
+	}
+
+	if hasDupes(choices) {
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices cannot repeat"})
+		return
+	}
+
+	for _, v := range choices {
+		if len(v) > 50 {
+			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices can be at most 50 characters"})
+			return
 		}
 	}
 

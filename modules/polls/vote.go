@@ -32,5 +32,5 @@ func runVoteCast(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote failed to be cast..."})
 	}
 
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote casted!"})
+	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote cast!"})
 }

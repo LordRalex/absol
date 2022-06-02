@@ -11,8 +11,9 @@ import (
 	"github.com/lordralex/absol/modules/log"
 	"github.com/lordralex/absol/modules/mcping"
 	"github.com/lordralex/absol/modules/messagereport"
-	"github.com/lordralex/absol/modules/twitch"
 	"github.com/lordralex/absol/modules/pastes"
+	"github.com/lordralex/absol/modules/polls"
+	"github.com/lordralex/absol/modules/twitch"
 	"strings"
 )
 
@@ -40,6 +41,8 @@ func LoadModule(ds *discordgo.Session, modules []string) {
 			loadedModules["pastes"] = &pastes.Module{}
 		case "messagereport":
 			loadedModules["messagereport"] = &messagereport.Module{}
+		case "polls":
+			loadedModules["polls"] = &polls.Module{}
 		default:
 			logger.Err().Printf("No module with name %s\n", v)
 		}

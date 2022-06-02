@@ -39,7 +39,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	rows := []discordgo.MessageComponent{}
 	row := []discordgo.MessageComponent{}
 	for _, element := range mc.Attachments {
-		if element.ContentType == "text/plain; charset=utf-8" || element.ContentType == "application/json; charset=utf-8" || element.ContentType == "text/html; charset=utf-8" {
+		if isAcceptedFile(element) {
 			btn := discordgo.Button{
 				Emoji: discordgo.ComponentEmoji{
 					Name: "📜",
@@ -92,4 +92,15 @@ func deleteIfReferenced(ds *discordgo.Session, channel string, messageId string)
 			}
 		}
 	}
+}
+
+func isAcceptedFile(attachment *discordgo.MessageAttachment) bool {
+	fileType := strings.Split(attachment.ContentType, ";")[0]
+	fileType = strings.TrimSpace(fileType)
+
+	if fileType == "text/plain" || fileType == "application/json" || fileType == "text/html" {
+		return true
+	}
+
+	return false
 }

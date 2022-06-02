@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        tags: ["all"]
+        tags: ["all", "polls"]
 
     env:
       IMAGE_TAG: ${{ matrix.tags }}

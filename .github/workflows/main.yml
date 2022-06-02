@@ -38,7 +38,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get docker tag
-        if: ${{ matrix.tags }} == "all"
+        if: ${{ matrix.tags == "all" }}
         run:
           echo "IMAGE_TAG=latest" >>${GITHUB_ENV}
 

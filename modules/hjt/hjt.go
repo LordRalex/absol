@@ -204,3 +204,7 @@ func (h *HJT) AfterFind(tx *gorm.DB) (err error) {
 	}
 	return
 }
+
+func (Module) Name() string {
+	return "hjt"
+}

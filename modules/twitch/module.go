@@ -15,3 +15,7 @@ func (tm *Module) Load(session *discordgo.Session) {
 	api.RegisterCommand("twitchid", RunCommand)
 	api.RegisterCommand("twitchname", RunCommand)
 }
+
+func (Module) Name() string {
+	return "twitch"
+}

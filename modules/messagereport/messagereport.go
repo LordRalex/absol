@@ -273,3 +273,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Report submitted"})
 }
+
+func (Module) Name() string {
+	return "messagereport"
+}

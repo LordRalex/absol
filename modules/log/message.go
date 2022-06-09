@@ -78,3 +78,7 @@ func downloadAttachment(db *sql.DB, id, url, filename string) {
 		logger.Err().Print(err.Error())
 	}
 }
+
+func (Module) Name() string {
+	return "log"
+}

@@ -163,3 +163,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		logger.Err().Printf("Failed to send message\n%s", err)
 	}
 }
+
+func (Module) Name() string {
+	return "mcping"
+}

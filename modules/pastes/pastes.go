@@ -104,3 +104,7 @@ func isAcceptedFile(attachment *discordgo.MessageAttachment) bool {
 
 	return false
 }
+
+func (Module) Name() string {
+	return "pastes"
+}

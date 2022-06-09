@@ -136,3 +136,7 @@ func hasDupes(choices []string) bool {
 
 	return false
 }
+
+func (Module) Name() string {
+	return "polls"
+}

@@ -33,7 +33,8 @@ func (m *Module) Load(d *discordgo.Session) {
 							s.runTick(ds)
 						}(v)
 					}
-				}}
+				}
+			}
 		}
 	}(d)
 }
@@ -91,4 +92,8 @@ func syncSites() {
 			i--
 		}
 	}
+}
+
+func (Module) Name() string {
+	return "alert"
 }

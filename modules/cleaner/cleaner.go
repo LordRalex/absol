@@ -24,7 +24,8 @@ func (c *Module) Load(d *discordgo.Session) {
 			case <-timer.C:
 				{
 					runTick(ds)
-				}}
+				}
+			}
 		}
 	}(d)
 }
@@ -87,5 +88,8 @@ func runTick(ds *discordgo.Session) {
 			logger.Err().Printf("Error cleaning channel: %v", err.Error())
 		}
 	}
+}
 
+func (Module) Name() string {
+	return "cleaner"
 }

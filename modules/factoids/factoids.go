@@ -199,3 +199,7 @@ type Factoid struct {
 	Name    string `gorm:"name"`
 	Content string `gorm:"content"`
 }
+
+func (Module) Name() string {
+	return "factoids"
+}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Module struct {
@@ -80,6 +81,45 @@ func (*Module) Load(ds *discordgo.Session) {
 	err = db.AutoMigrate(&Poll{}, &Vote{})
 	if err != nil {
 		logger.Err().Println(err.Error())
+	}
+
+	go func(session *discordgo.Session) {
+		CloseOldPolls(session)
+
+		timer := time.NewTicker(time.Minute)
+		for {
+			select {
+			case <-timer.C:
+				{
+					CloseOldPolls(session)
+				}
+			}
+		}
+	}(ds)
+}
+
+func CloseOldPolls(ds *discordgo.Session) {
+	db, err := database.Get()
+	if err != nil {
+		logger.Err().Println("Error loading database: " + err.Error())
+		return
+	}
+
+	var polls []*Poll
+	err = db.Where("end_at < ? AND closed = 0", time.Now().UTC()).Find(&polls).Error
+
+	if err != nil {
+		logger.Err().Println("Error finding closed polls: " + err.Error())
+		return
+	}
+
+	for _, poll := range polls {
+		message, err := ds.ChannelMessage(poll.ChannelId, poll.MessageId)
+		if err != nil {
+			logger.Err().Println("Error finding closed polls: " + err.Error())
+		}
+
+		closePoll(ds, poll, message, db)
 	}
 }
 

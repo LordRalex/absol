@@ -63,9 +63,15 @@ func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	edit := discordgo.NewMessageEdit(originalMessage.ChannelID, originalMessage.ID)
-	edit.Components = originalMessage.Components
-	edit.Embeds = originalMessage.Embeds
+	closePoll(ds, poll, originalMessage, db)
+
+	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll closed"})
+}
+
+func closePoll(ds *discordgo.Session, poll *Poll, message *discordgo.Message, db *gorm.DB) {
+	edit := discordgo.NewMessageEdit(message.ChannelID, message.ID)
+	edit.Components = message.Components
+	edit.Embeds = message.Embeds
 
 	for _, v := range edit.Components {
 		if v.Type() == discordgo.ActionsRowComponent {
@@ -74,7 +80,7 @@ func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 				if b.Type() == discordgo.ButtonComponent {
 					button := b.(*discordgo.Button)
 					key := button.Label
-					votes := &Vote{MessageId: poll.MessageId, Vote: key}
+					votes := &Vote{MessageId: message.ID, Vote: key}
 					var count int64
 					db.Model(votes).Where(votes).Count(&count)
 					button.Label = fmt.Sprintf("%s (%d)", button.Label, count)
@@ -89,5 +95,4 @@ func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	_ = db.Save(poll).Error
 
 	_, _ = ds.ChannelMessageEditComplex(edit)
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll closed"})
 }

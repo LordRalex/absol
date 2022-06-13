@@ -1,9 +1,12 @@
 package polls
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/database"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var createPollOperation = &discordgo.ApplicationCommand{
@@ -41,6 +44,12 @@ var createPollOperation = &discordgo.ApplicationCommand{
 			Type:        discordgo.ApplicationCommandOptionAttachment,
 			Required:    false,
 		},
+		{
+			Name:        "timeout",
+			Description: "How long the poll should be valid for (default is 1 day)",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    false,
+		},
 	},
 }
 
@@ -55,6 +64,7 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	var title string
 	var description string
 	var choices []string
+	var timeout string
 	var err error
 
 	for _, v := range commandData.Options {
@@ -90,6 +100,10 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 				}
 				choices = strings.Split(data, "\r\n")
 			}
+		case "timeout":
+			{
+				timeout = v.StringValue()
+			}
 		}
 	}
 
@@ -107,11 +121,38 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
+	endDate := time.Now().AddDate(0, 0, 1)
+	if timeout != "" {
+		if strings.HasSuffix(timeout, "d") {
+			//parse as days
+			part := strings.TrimSuffix(timeout, "d")
+			numDays, err := strconv.Atoi(part)
+			if err != nil {
+				_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Timeout is invalid"})
+			}
+			endDate = time.Now().AddDate(0, 0, numDays)
+		} else {
+			timer, err := time.ParseDuration(timeout)
+			if err != nil {
+				_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Timeout is invalid"})
+			}
+			endDate = time.Now().Add(timer)
+		}
+	}
+
+	endDate = endDate.UTC()
+
 	for _, v := range choices {
 		if len(v) > 50 {
 			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices can be at most 50 characters"})
 			return
 		}
+	}
+
+	if description == "" {
+		description = fmt.Sprintf("Poll ends <t:%d:R>", endDate.Unix())
+	} else {
+		description = fmt.Sprintf("%s\n\nPoll ends <t:%d:R>", description, endDate.Unix())
 	}
 
 	embeds := []*discordgo.MessageEmbed{{
@@ -120,8 +161,8 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		Author: &discordgo.MessageEmbedAuthor{
 			Name:    i.Member.Nick,
 			IconURL: i.Member.AvatarURL(""),
-		}},
-	}
+		},
+	}}
 
 	m := &discordgo.MessageSend{
 		Embeds:     embeds,
@@ -140,7 +181,7 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	err = db.Create(&Poll{Title: title, MessageId: message.ID}).Error
+	err = db.Create(&Poll{Title: title, MessageId: message.ID, ChannelId: i.ChannelID, EndAt: endDate, Started: time.Now()}).Error
 	if err != nil {
 		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error saving poll to database: " + err.Error()})
 		_ = ds.ChannelMessageDelete(message.ChannelID, message.ID)

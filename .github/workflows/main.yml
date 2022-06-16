@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        tags: ["all", "polls"]
+        tags: ["modules.all", "modules.polls"]
 
     env:
       IMAGE_TAG: ${{ matrix.tags }}
@@ -38,7 +38,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get docker tag
-        if: ${{ matrix.tags == 'all' }}
+        if: ${{ matrix.tags == 'modules.all' }}
         run:
           echo "IMAGE_TAG=latest" >>${GITHUB_ENV}
 
@@ -49,5 +49,5 @@ jobs:
           push: true
           tags: ghcr.io/${{ env.REPO }}:${{ env.IMAGE_TAG }}
           build-args: |
-            tags=${{ matrix.tags }}
+            tags=${{ matrix.tags }},databases.all
           platforms: linux/amd64,linux/arm64

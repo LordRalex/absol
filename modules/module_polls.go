@@ -1,5 +1,5 @@
-//go:build polls || all
-// +build polls all
+//go:build modules.polls || modules.all
+// +build modules.polls modules.all
 
 package modules
 

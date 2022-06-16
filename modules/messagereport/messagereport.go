@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"strings"
@@ -22,9 +22,9 @@ var client = &http.Client{}
 var appId string
 
 func (*Module) Load(ds *discordgo.Session) {
-	appId = viper.GetString("app.id")
+	appId = env.Get("discord.app_id")
 
-	maps := strings.Split(viper.GetString("MESSAGEREPORT_GUILDS"), ";")
+	maps := env.GetStringArray("messagereport.guilds", ";")
 	for _, v := range maps {
 		if v == "" {
 			continue

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2/clientcredentials"
 	"golang.org/x/oauth2/twitch"
 	"net/http"
@@ -75,7 +75,7 @@ func callTwitch(requestUrl string) (data TwitchApi, err error) {
 		return
 	}
 
-	clientId := viper.GetString("twitch_client_id")
+	clientId := env.Get("twitch.client_id")
 
 	req.Header = http.Header{}
 	req.Method = "GET"
@@ -106,8 +106,8 @@ func refreshToken() error {
 			return nil
 		}
 
-		clientId := viper.GetString("twitch_client_id")
-		clientSecret := viper.GetString("twitch_client_secret")
+		clientId := env.Get("twitch.client_id")
+		clientSecret := env.Get("twitch.client_secret")
 
 		if clientId == "" || clientSecret == "" {
 			logger.Err().Printf("Token for twitch is not configured")

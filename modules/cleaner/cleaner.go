@@ -3,8 +3,8 @@ package cleaner
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"strings"
 	"time"
 )
@@ -32,10 +32,10 @@ func (c *Module) Load(d *discordgo.Session) {
 
 func runTick(ds *discordgo.Session) {
 	logger.Debug().Print("Running channel cleanup")
-	envChan := viper.GetString("cleanerChannel")
+	envChan := env.Get("cleaner.channel")
 
 	postDelay := -1 * time.Hour * 24
-	delay := viper.GetInt("cleanerTime")
+	delay := env.GetInt("cleaner.time")
 	if delay != 0 {
 		postDelay = -1 * time.Hour * time.Duration(delay)
 	}

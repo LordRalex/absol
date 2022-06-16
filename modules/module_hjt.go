@@ -1,5 +1,5 @@
-//go:build hjt || all
-// +build hjt all
+//go:build modules.hjt || modules.all
+// +build modules.hjt modules.all
 
 package modules
 

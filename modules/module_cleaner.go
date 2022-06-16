@@ -1,5 +1,5 @@
-//go:build cleaner || all
-// +build cleaner all
+//go:build modules.cleaner || modules.all
+// +build modules.cleaner modules.all
 
 package modules
 

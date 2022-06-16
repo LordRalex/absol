@@ -6,8 +6,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/iverly/go-mcping/mcping"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,11 +21,11 @@ type Module struct {
 var appId string
 
 func (*Module) Load(ds *discordgo.Session) {
-	appId = viper.GetString("app.id")
+	appId = env.Get("discord.app_id")
 
 	var guilds []string
 
-	maps := strings.Split(viper.GetString("MCPING_GUILDS"), ";")
+	maps := env.GetStringArray("mcping.guilds", ";")
 	for _, v := range maps {
 		if v == "" {
 			continue

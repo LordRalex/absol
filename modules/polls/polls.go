@@ -4,8 +4,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"strings"
@@ -20,11 +20,11 @@ var appId string
 var client = &http.Client{}
 
 func (*Module) Load(ds *discordgo.Session) {
-	appId = viper.GetString("app.id")
+	appId = env.Get("discord.app_id")
 
 	var guilds []string
 
-	maps := strings.Split(viper.GetString("POLLS_GUILDS"), ";")
+	maps := env.GetStringArray("polls.guilds", ";")
 	for _, v := range maps {
 		if v == "" {
 			continue
@@ -76,6 +76,7 @@ func (*Module) Load(ds *discordgo.Session) {
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Println(err.Error())
+		panic(err)
 	}
 
 	err = db.AutoMigrate(&Poll{}, &Vote{})

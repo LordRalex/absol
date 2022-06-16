@@ -4,13 +4,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"strings"
 )
 
 type Module struct {
@@ -20,11 +19,11 @@ type Module struct {
 var appId string
 
 func (*Module) Load(ds *discordgo.Session) {
-	appId = viper.GetString("app.id")
+	appId = env.Get("discord.app_id")
 
 	var guilds []string
 
-	maps := strings.Split(viper.GetString("HJT_GUILDS"), ";")
+	maps := env.GetStringArray("hjt.guilds", ";")
 	for _, v := range maps {
 		if v == "" {
 			continue

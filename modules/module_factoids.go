@@ -1,5 +1,5 @@
-//go:build factoids || all
-// +build factoids all
+//go:build modules.factoids || modules.all
+// +build modules.factoids modules.all
 
 package modules
 

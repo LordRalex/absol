@@ -5,11 +5,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -23,7 +22,7 @@ type Module struct {
 }
 
 func (*Module) Load(session *discordgo.Session) {
-	loggedServers = strings.Split(viper.GetString("LOGGED_SERVERS"), ";")
+	loggedServers = env.GetStringArray("log.guilds", ";")
 
 	session.AddHandler(OnMessageCreate)
 	session.AddHandler(OnMessageDelete)

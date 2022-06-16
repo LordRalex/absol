@@ -2,8 +2,8 @@ package database
 
 import (
 	"database/sql"
-	"github.com/spf13/viper"
-	"gorm.io/driver/mysql"
+	"errors"
+	"github.com/lordralex/absol/api/env"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"sync"
@@ -12,6 +12,8 @@ import (
 
 var databaseConn *gorm.DB
 var locker sync.Mutex
+
+var dialects = map[string]Dialect{}
 
 func Get() (*gorm.DB, error) {
 	var err error
@@ -29,18 +31,33 @@ func Get() (*gorm.DB, error) {
 }
 
 func load() (db *gorm.DB, err error) {
-	connString := viper.GetString("database")
-	if connString == "" {
-		connString = "discord:discord@/discord?charset=utf8mb4&parseTime=True"
+	var dialect Dialect
+	dialectName := env.Get("database.dialect")
+	if dialectName == "" {
+		if len(dialects) == 1 {
+			for _, v := range dialects {
+				dialect = v
+				break
+			}
+		} else {
+			return nil, errors.New("no database dialects or more than 1 dialect available with none selected using database.dialect")
+		}
+	} else {
+		dialect = dialects[dialectName]
 	}
 
-	db, err = gorm.Open(mysql.Open(connString), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+	if dialect == nil {
+		return nil, errors.New("unknown database dialect " + dialectName)
+	}
+
+	db, err = gorm.Open(dialect.Load(), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if db != nil {
 		sqlDb, _ := db.DB()
 		sqlDb.SetConnMaxLifetime(time.Second * 10)
 		sqlDb.SetMaxIdleConns(0)
 		sqlDb.SetMaxOpenConns(10)
 	}
+
 	return
 }
 
@@ -48,4 +65,8 @@ func Execute(stmt *sql.Stmt, args ...interface{}) error {
 	defer stmt.Close()
 	_, err := stmt.Exec(args...)
 	return err
+}
+
+type Dialect interface {
+	Load() gorm.Dialector
 }

@@ -3,7 +3,7 @@
 ###
 FROM golang:1.18-alpine AS builder
 
-ARG tags=all
+ARG tags="modules.all,databases.all"
 
 WORKDIR /build
 COPY . .
@@ -18,7 +18,8 @@ FROM alpine
 COPY --from=builder /build/absol /go/bin/absol
 
 ENV DISCORD_TOKEN="YOUR DISCORD BOT TOKEN"
-ENV DATABASE=""
+ENV DATABASE_DIALECT="mysql"
+ENV DATABASE_URL=""
 
 ENTRYPOINT ["/go/bin/absol"]
 CMD ["all"]

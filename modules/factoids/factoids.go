@@ -5,8 +5,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -51,7 +51,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		}
 	}
 
-	max := viper.GetInt("factoids.max")
+	max := env.GetInt("factoids.max")
 	if max == 0 {
 		max = 5
 	}
@@ -150,7 +150,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		Embed:   embed,
 	}
 
-	if viper.GetBool("factoid.delete") {
+	if env.GetBool("factoids.delete") {
 		_ = ds.ChannelMessageDelete(mc.ChannelID, mc.ID)
 	}
 

@@ -2,13 +2,15 @@ package pastes
 
 import (
 	"fmt"
+	"github.com/lordralex/absol/api/env"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/logger"
-	"github.com/spf13/viper"
 )
+
+var guilds []string
 
 type Module struct {
 	api.Module
@@ -18,9 +20,10 @@ func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages)
 	ds.AddHandler(HandleMessage)
 	ds.AddHandler(onDelete)
-	if viper.GetString("pastes.url") == "" {
+	if env.Get("pastes.url") == "" {
 		logger.Err().Fatal("Paste root url required to use pastes module!")
 	}
+	guilds = env.GetStringArray("pastes.guilds", ";")
 }
 
 func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
@@ -28,7 +31,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		return
 	}
 	used := false
-	for _, item := range strings.Split(viper.GetString("pastes.guilds"), ";") {
+	for _, item := range guilds {
 		if item == mc.GuildID {
 			used = true
 		}
@@ -46,7 +49,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   fmt.Sprintf("%s/%s/%s/%s", viper.GetString("pastes.url"), mc.ChannelID, element.ID, element.Filename),
+				URL:   fmt.Sprintf("%s/%s/%s/%s", env.Get("pastes.url"), mc.ChannelID, element.ID, element.Filename),
 			}
 			row = append(row, btn)
 			if len(row) >= 5 {

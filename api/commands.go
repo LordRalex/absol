@@ -12,11 +12,7 @@ func RegisterCommand(cmd string, commandFunc CommandFunc) {
 }
 
 func GetCommand(cmd string) CommandFunc {
-	executor := registeredCommands[strings.ToLower(cmd)]
-	if executor == nil {
-		return registeredCommands[""]
-	}
-	return executor
+	return registeredCommands[strings.ToLower(cmd)]
 }
 
 type CommandFunc func(session *discordgo.Session, message *discordgo.MessageCreate, cmd string, args []string)

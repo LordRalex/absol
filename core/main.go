@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
 	"github.com/lordralex/absol/modules"
-	"github.com/spf13/viper"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,12 +19,9 @@ import (
 var Session *discordgo.Session
 
 func main() {
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
 	m := os.Args[1:]
 
-	token := viper.GetString("discord.token")
+	token := env.Get("discord.token")
 
 	if token == "" {
 		logger.Err().Print("DISCORD_TOKEN must be set in the environment to run this process")
@@ -40,7 +37,7 @@ func main() {
 
 	if !strings.HasPrefix(token, "Bot ") {
 		token = "Bot " + token
-		viper.Set("discord.token", token)
+		env.Set("discord.token", token)
 	}
 
 	SetApplicationId()
@@ -83,7 +80,7 @@ func SetApplicationId() {
 		Method: "GET",
 		URL:    u,
 		Header: map[string][]string{
-			"Authorization": {viper.GetString("discord.token")},
+			"Authorization": {env.Get("discord.token")},
 		},
 	}
 
@@ -95,5 +92,5 @@ func SetApplicationId() {
 
 	var app discordgo.Application
 	json.NewDecoder(response.Body).Decode(&app)
-	viper.Set("app.id", app.ID)
+	env.Set("discord.app_id", app.ID)
 }

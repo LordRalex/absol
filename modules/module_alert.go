@@ -1,5 +1,5 @@
-//go:build alert || all
-// +build alert all
+//go:build modules.alert || modules.all
+// +build modules.alert modules.all
 
 package modules
 

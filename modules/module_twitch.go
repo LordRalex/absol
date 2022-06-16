@@ -1,5 +1,5 @@
-//go:build twitch || all
-// +build twitch all
+//go:build modules.twitch || modules.all
+// +build modules.twitch modules.all
 
 package modules
 

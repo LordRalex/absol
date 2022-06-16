@@ -1,5 +1,5 @@
-//go:build log || all
-// +build log all
+//go:build modules.log || modules.all
+// +build modules.log modules.all
 
 package modules
 

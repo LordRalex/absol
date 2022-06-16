@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/modules"
-	"github.com/spf13/viper"
 	"strings"
 )
 
@@ -15,11 +15,7 @@ func init() {
 }
 
 func EnableCommands(session *discordgo.Session) {
-	commandPrefix = viper.GetString("prefix")
-
-	if commandPrefix == "" {
-		commandPrefix = "!?"
-	}
+	commandPrefix = env.GetOr("prefix", "!?")
 
 	session.AddHandler(onMessageCommand)
 }

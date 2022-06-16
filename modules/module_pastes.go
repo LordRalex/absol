@@ -1,5 +1,5 @@
-//go:build pastes || all
-// +build pastes all
+//go:build modules.pastes || modules.all
+// +build modules.pastes modules.all
 
 package modules
 

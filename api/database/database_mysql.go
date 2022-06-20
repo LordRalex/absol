@@ -4,9 +4,11 @@
 package database
 
 import (
+	"fmt"
 	"github.com/lordralex/absol/api/env"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"net/url"
 )
 
 type MySql struct {
@@ -14,12 +16,12 @@ type MySql struct {
 }
 
 func (*MySql) Load() gorm.Dialector {
-	connString := env.Get("database.url")
+	user := env.GetOr("database.user", "discord")
+	pass := url.PathEscape(env.GetOr("database.pass", "discord"))
+	host := env.Get("database.host")
+	dbName := env.GetOr("database.db", "discord")
 
-	if connString == "" {
-		connString = "discord:discord@/discord?charset=utf8mb4&parseTime=True"
-	}
-
+	connString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8mb4&parseTime=True", user, pass, host, dbName)
 	return mysql.Open(connString)
 }
 

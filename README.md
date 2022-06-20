@@ -6,11 +6,15 @@ Absol is a Discord bot created for many purposes, one of them being helping arou
 Required environment variables:
 
 - **DISCORD_TOKEN**: Bot discord token to log into Discord
-- **DATABASE_DIALECT**: Dialect of the database (mysql only)
-- **DATABASE_URL**: Fully defined MySQL connection string (refer to https://github.com/go-sql-driver/mysql#dsn-data-source-name for full information)
+- **DATABASE_DIALECT**: Dialect of the database (mysql only, default mysql)
+- **DATABASE_USER**: Database username (default discord)
+- **DATABASE_PASS**: Database password (default discord)
+- **DATABASE_HOST**: Database host (default empty, equals localhost)
+- **DATABASE_DB**: Database name to use (default discord)
+
 
 All environment variables may add _FILE to the end to read from a Docker secret path. The path to the secret should be set as the value.
-Example: DISCORD_TOKEN=/run/secrets/discordtoken will read the value from the discordtoken secret
+Example: DISCORD_TOKEN_FILE=/run/secrets/discordtoken will read the value from the discordtoken secret
 
 ### Docker Build
 Run `docker build -t absol .` and if it dosent find any errors you should see `Successfully built`.

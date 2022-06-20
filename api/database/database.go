@@ -32,7 +32,8 @@ func Get() (*gorm.DB, error) {
 
 func load() (db *gorm.DB, err error) {
 	var dialect Dialect
-	dialectName := env.Get("database.dialect")
+	//TODO: Remove default when other drivers are supported
+	dialectName := env.GetOr("database.dialect", "mysql")
 	if dialectName == "" {
 		if len(dialects) == 1 {
 			for _, v := range dialects {

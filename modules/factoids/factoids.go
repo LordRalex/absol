@@ -147,7 +147,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	send := &discordgo.MessageSend{
 		Content: header,
-		Embed:   embed,
+		Embeds:  []*discordgo.MessageEmbed{embed},
 	}
 
 	if env.GetBool("factoids.delete") {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/database"
+	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
 	"gorm.io/gorm"
 	"net/http"
@@ -13,11 +14,14 @@ import (
 	"time"
 )
 
-type site struct {
+type Site struct {
 	SiteName     string   `gorm:"column:name"`
 	RSSUrl       string   `gorm:"column:rss"`
 	ElmahUrl     string   `gorm:"column:elmahUrl"`
 	AlertChannel []string `gorm:"-"`
+	Webhook      string   `gorm:"column:webhook;size:1000;not null;default:''"`
+	WebhookId    string   `gorm:"-"`
+	WebhookToken string   `gorm:"-"`
 	Channels     string
 	AlertServer  []string `gorm:"-"`
 	Servers      string
@@ -31,9 +35,7 @@ type site struct {
 	fullyIgnore    bool
 }
 
-type sites []*site
-
-func (s *site) runTick(ds *discordgo.Session) {
+func (s *Site) runTick(ds *discordgo.Session) {
 	if s.fullyIgnore {
 		return
 	}
@@ -88,11 +90,27 @@ func (s *site) runTick(ds *discordgo.Session) {
 
 	var importantErrors []string
 	for _, e := range data.Channel.Item {
-		if s.isReportable(e) {
-			counter++
+		if !s.isReportable(e) {
+			continue
 		}
+		counter++
 
-		if s.isImportantError(e) {
+		if env.GetBool("alert.feed") && s.Webhook != "" {
+			embed := &discordgo.MessageEmbed{
+				URL:         e.Link.Link,
+				Title:       e.Title,
+				Description: e.Description,
+				Timestamp:   e.PublishDate.UTC().Format(time.RFC3339),
+				Author:      &discordgo.MessageEmbedAuthor{Name: s.SiteName},
+			}
+
+			_, err = ds.WebhookExecute(s.WebhookId, s.WebhookToken, true, &discordgo.WebhookParams{
+				Embeds: []*discordgo.MessageEmbed{embed},
+			})
+			if err != nil {
+				logger.Err().Printf("%s\n", err.Error())
+			}
+		} else if s.isImportantError(e) {
 			if importantErrors == nil {
 				importantErrors = []string{e.Title}
 			} else {
@@ -101,26 +119,42 @@ func (s *site) runTick(ds *discordgo.Session) {
 		}
 	}
 
-	if importantErrors != nil && len(importantErrors) >= 0 {
-		s.sendMessage(ds, fmt.Sprintf("Important Errors: \n%s", strings.Join(importantErrors, "\n")))
-	}
+	if !env.GetBool("alert.feed") {
+		if importantErrors != nil && len(importantErrors) >= 0 {
+			s.sendMessage(ds, fmt.Sprintf("Important Errors: \n%s", strings.Join(importantErrors, "\n")))
+		}
 
-	if counter >= s.MaxErrors && !s.silent {
-		s.sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, s.Period))
+		if counter >= s.MaxErrors && !s.silent {
+			s.sendMessage(ds, fmt.Sprintf("%d errors detected in report log in last %d minutes, please investigate", counter, s.Period))
+		}
 	}
 }
 
-func (s *site) sendMessage(ds *discordgo.Session, msg string) {
-	for _, v := range s.AlertChannel {
-		_, _ = ds.ChannelMessageSend(v, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
-		s.silent = true
-		time.AfterFunc(time.Minute*5, func() {
-			s.silent = false
+func (s *Site) sendMessage(ds *discordgo.Session, msg string) {
+	if s.Webhook != "" {
+		embed := &discordgo.MessageEmbed{
+			URL:         s.ElmahUrl,
+			Description: msg,
+			Timestamp:   time.Now().Format(time.RFC3339),
+			Author:      &discordgo.MessageEmbedAuthor{Name: s.SiteName},
+		}
+
+		_, _ = ds.WebhookExecute(s.WebhookId, s.WebhookToken, false, &discordgo.WebhookParams{
+			Embeds: []*discordgo.MessageEmbed{embed},
 		})
+	} else {
+		for _, v := range s.AlertChannel {
+			_, _ = ds.ChannelMessageSend(v, fmt.Sprintf("[%s] [%s]\n%s", s.SiteName, s.ElmahUrl, msg))
+		}
 	}
+
+	s.silent = true
+	time.AfterFunc(time.Minute*5, func() {
+		s.silent = false
+	})
 }
 
-func (s *site) isReportable(data Item) bool {
+func (s *Site) isReportable(data Item) bool {
 	if s.silent {
 		return false
 	}
@@ -168,7 +202,7 @@ func (s *site) isReportable(data Item) bool {
 	return count == 0
 }
 
-func (s *site) isImportantError(data Item) bool {
+func (s *Site) isImportantError(data Item) bool {
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
 	if !data.PublishDate.After(cutoffTime) {
 		return false
@@ -211,7 +245,7 @@ func (s *site) isImportantError(data Item) bool {
 	return count != 0
 }
 
-func (s *site) isLoggable(item Item) bool {
+func (s *Site) isLoggable(item Item) bool {
 	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
 	if !item.PublishDate.After(cutoffTime) {
 		return false
@@ -220,13 +254,19 @@ func (s *site) isLoggable(item Item) bool {
 	return true
 }
 
-func (s *site) AfterFind(*gorm.DB) (err error) {
+func (s *Site) AfterFind(*gorm.DB) (err error) {
 	s.AlertChannel = strings.Split(s.Channels, ";")
 	s.AlertServer = strings.Split(s.Servers, ";")
+	if s.Webhook != "" {
+		part := strings.TrimPrefix(s.Webhook, "https://discord.com/api/webhooks/")
+		parts := strings.SplitN(part, "/", 2)
+		s.WebhookId = parts[0]
+		s.WebhookToken = parts[1]
+	}
 	return
 }
 
-func (s *site) createRequest(requestUrl string) (req *http.Request, err error) {
+func (s *Site) createRequest(requestUrl string) (req *http.Request, err error) {
 	req = &http.Request{}
 	req.URL, err = url.Parse(requestUrl)
 	if err != nil {

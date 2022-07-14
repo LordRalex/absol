@@ -48,7 +48,7 @@ func GetOr(key string, def string) string {
 }
 
 func GetBool(key string) bool {
-	return cast.ToBool(Get(key))
+	return GetBoolOr(key, false)
 }
 
 func GetBoolOr(key string, def bool) bool {

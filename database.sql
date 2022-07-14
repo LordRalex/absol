@@ -1,21 +1,3 @@
-DELIMITER //
-CREATE PROCEDURE `addEditMessage`(
-	IN `message_id` BIGINT,
-	IN `new_content` TEXT
-)
-    SQL SECURITY INVOKER
-BEGIN
-    INSERT INTO edits (message_id, old_content)
-	    SELECT id, content
-	    FROM messages
-	    WHERE id = @message_id;
-	    
-	 UPDATE messages
-	 SET content = @new_content
-	 WHERE id = @message_id;
-END//
-DELIMITER ;
-
 CREATE TABLE IF NOT EXISTS `messages` (
   `id` bigint(20) unsigned NOT NULL,
   `sender` varchar(50) DEFAULT NULL,
@@ -42,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `attachments` (
   `url` varchar(4000) DEFAULT NULL,
   `name` varchar(4000) DEFAULT NULL,
   `contents` longblob DEFAULT NULL,
+  `is_compressed` bit DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=34734 DEFAULT CHARSET=utf8;
 

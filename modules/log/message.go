@@ -30,7 +30,7 @@ func (*Module) Load(session *discordgo.Session) {
 	session.AddHandler(OnMessageEdit)
 	session.AddHandlerOnce(OnConnect)
 
-	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsGuildBans, discordgo.IntentsGuildMembers)
+	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsGuildBans, discordgo.IntentsGuildMembers, discordgo.IntentsMessageContent)
 }
 
 func OnConnect(ds *discordgo.Session, mc *discordgo.Connect) {
@@ -50,6 +50,10 @@ func OnConnect(ds *discordgo.Session, mc *discordgo.Connect) {
 }
 
 func downloadAttachment(db *sql.DB, id, url, filename string) {
+	if !env.GetBool("log.download") {
+		return
+	}
+
 	//check to see if URL already exists, if so, skip
 	stmt, _ := db.Prepare("SELECT id from attachments WHERE url = ?")
 	rows, err := stmt.Query(url)
@@ -71,7 +75,7 @@ func downloadAttachment(db *sql.DB, id, url, filename string) {
 		data, _ = ioutil.ReadAll(response.Body)
 	}
 
-	stmt, _ = db.Prepare("INSERT INTO attachments (message_id, url, name, contents) VALUES (?, ?, ?, ?);")
+	stmt, _ = db.Prepare("INSERT INTO attachments (message_id, url, name, contents, is_compressed) VALUES (?, ?, ?, COMPRESS(?), 1);")
 	err = database.Execute(stmt, id, url, filename, data)
 	if err != nil {
 		logger.Err().Print(err.Error())

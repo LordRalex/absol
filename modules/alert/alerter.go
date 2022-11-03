@@ -94,21 +94,14 @@ func (m *Module) Load(d *discordgo.Session) {
 	d.AddHandlerOnce(func(d *discordgo.Session, e *discordgo.Connect) {
 		go func(ds *discordgo.Session) {
 			timer := time.NewTicker(time.Minute)
-
-			syncSites()
-			for _, v := range knownSites {
-				go func(s *Site) {
-					s.runTick(ds)
-				}(v)
-			}
-
 			for {
-				<-timer.C
+				syncSites()
 				for _, v := range knownSites {
 					go func(s *Site) {
 						s.runTick(ds)
 					}(v)
 				}
+				<-timer.C
 			}
 		}(d)
 	})
@@ -121,7 +114,7 @@ func syncSites() {
 		return
 	}
 
-	var dbSites []Site
+	var dbSites []*Site
 	err = db.Find(&dbSites).Error
 	if err != nil {
 		logger.Err().Printf("Error looking for new db sites: %s\n", err.Error())
@@ -148,7 +141,7 @@ func syncSites() {
 		}
 
 		if !exists {
-			knownSites = append(knownSites, &v)
+			knownSites = append(knownSites, v)
 		}
 	}
 

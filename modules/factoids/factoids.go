@@ -71,7 +71,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
 	if gorm.ErrRecordNotFound == err || (err == nil && len(data) == 0) {
-		err = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
+		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
 		return
 	} else if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
@@ -127,7 +127,6 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 			replyMsg, err := ds.ChannelMessage(mc.MessageReference.ChannelID, mc.MessageReference.MessageID)
 			if err == nil && replyMsg.ID != "" {
 				mentions[replyMsg.Author.ID] = true
-
 			}
 		}
 
@@ -200,6 +199,6 @@ type Factoid struct {
 	Content string `gorm:"content"`
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "factoids"
 }

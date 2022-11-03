@@ -84,7 +84,7 @@ func (s *Site) runTick(ds *discordgo.Session) {
 	counter := 0
 
 	if len(data.Channel.Item) == 0 && !s.silent {
-		s.sendMessage(ds, fmt.Sprintf("Error pinging: RSS Log is empty"))
+		s.sendMessage(ds, "Error pinging: RSS Log is empty")
 		return
 	}
 
@@ -243,15 +243,6 @@ func (s *Site) isImportantError(data Item) bool {
 	}
 
 	return count != 0
-}
-
-func (s *Site) isLoggable(item Item) bool {
-	cutoffTime := time.Now().Add(time.Duration(-1*s.Period) * time.Minute)
-	if !item.PublishDate.After(cutoffTime) {
-		return false
-	}
-
-	return true
 }
 
 func (s *Site) AfterFind(*gorm.DB) (err error) {

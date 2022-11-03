@@ -7,7 +7,7 @@ import (
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
 	"gorm.io/gorm"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 )
@@ -82,7 +82,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	content, err := readFromUrl(pasteLink)
 	if err != nil {
-		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 			Content: "Invalid URL",
 		})
 		return
@@ -91,7 +91,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Failed to connect to database\n%s", err)
-		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 			Content: "Failed to connect to database",
 		})
 		return
@@ -102,7 +102,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 			Content: "Failed to connect to database",
 		})
 		return
@@ -112,7 +112,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, v := range values {
 		matches, err := regexp.Match(v.MatchCriteria, content)
 		if err != nil {
-			_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 				Content: v.Name + " is an invalid regex statement: " + err.Error(),
 			})
 			return
@@ -123,7 +123,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	if len(results) == 0 {
-		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 			Content: "Report for " + pasteLink + "\nNo matches found",
 		})
 		return
@@ -133,7 +133,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	err = db.Find(&data, results).Order("severity desc").Error
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 			Content: "Failed to connect to database",
 		})
 		return
@@ -146,7 +146,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 		message += v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
-	_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
+	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
 		Content: message,
 	})
 }
@@ -158,7 +158,7 @@ func readFromUrl(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return []byte{}, err
@@ -204,6 +204,6 @@ func (h *HJT) AfterFind(tx *gorm.DB) (err error) {
 	return
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "hjt"
 }

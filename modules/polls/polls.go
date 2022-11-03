@@ -89,12 +89,8 @@ func (*Module) Load(ds *discordgo.Session) {
 
 		timer := time.NewTicker(time.Minute)
 		for {
-			select {
-			case <-timer.C:
-				{
-					CloseOldPolls(session)
-				}
-			}
+			<-timer.C
+			CloseOldPolls(session)
 		}
 	}(ds)
 }
@@ -178,6 +174,6 @@ func hasDupes(choices []string) bool {
 	return false
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "polls"
 }

@@ -37,7 +37,7 @@ func (*Module) Load(ds *discordgo.Session) {
 	}
 
 	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		for k, _ := range guilds {
+		for k := range guilds {
 			logger.Out().Printf("Registering %s for guild %s\n", reportOperation.Name, k)
 			_, err := s.ApplicationCommandCreate(appId, k, reportOperation)
 			if err != nil {
@@ -198,7 +198,7 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if firstReport {
 		embeds := []*discordgo.MessageEmbed{{
 			URL:         fmt.Sprintf("https://discord.com/channels/%s/%s/%s", i.GuildID, message.ChannelID, message.ID),
-			Title:       fmt.Sprintf("Message Link"),
+			Title:       "Message Link",
 			Description: message.Content,
 			Timestamp:   message.Timestamp.Format(time.RFC3339),
 			Thumbnail:   &discordgo.MessageEmbedThumbnail{URL: message.Author.AvatarURL("")},
@@ -274,6 +274,6 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Report submitted"})
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "messagereport"
 }

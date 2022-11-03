@@ -16,6 +16,6 @@ func (tm *Module) Load(session *discordgo.Session) {
 	api.RegisterCommand("twitchname", RunCommand)
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "twitch"
 }

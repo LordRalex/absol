@@ -30,12 +30,17 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	var err error
 
 	if len(args) != 1 {
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Name required")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Name required")
 		logger.Err().Printf("Name required")
 		return
 	}
 
 	err = refreshToken()
+	if err != nil {
+		logger.Err().Printf("unable to refresh twitch token\n%s", err)
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info")
+		return
+	}
 
 	locker.RLock()
 	defer locker.RUnlock()
@@ -47,14 +52,12 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		requestUrl += "?login=" + param
 	} else if cmd == "twitchname" {
 		requestUrl += "?id=" + param
-	} else {
-
 	}
 
 	data, err := callTwitch(requestUrl)
 	if err != nil {
 		logger.Err().Printf("unable to call twitch url %s\n%s", requestUrl, err)
-		_, err = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info")
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, "Failed to get twitch info")
 		return
 	}
 
@@ -64,7 +67,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		_, _ = ds.ChannelMessageSend(mc.ChannelID, "No such user")
 	} else {
 		user := data.Data[0]
-		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Display Name: %s\nLogin: %s\nID: %s", user.DisplayName, user.Login, user.Id))
+		_, _ = ds.ChannelMessageSend(mc.ChannelID, fmt.Sprintf("Display Name: `%s`\nLogin: `%s`\nID: `%s`", user.DisplayName, user.Login, user.Id))
 	}
 }
 

@@ -20,12 +20,8 @@ func (c *Module) Load(d *discordgo.Session) {
 		timer := time.NewTicker(10 * time.Minute)
 
 		for {
-			select {
-			case <-timer.C:
-				{
-					runTick(ds)
-				}
-			}
+			<-timer.C
+			runTick(ds)
 		}
 	}(d)
 }
@@ -90,6 +86,6 @@ func runTick(ds *discordgo.Session) {
 	}
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "cleaner"
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 )
@@ -72,7 +72,7 @@ func downloadAttachment(db *sql.DB, id, url, filename string) {
 	response, err := client.Get(url)
 	if err == nil {
 		defer response.Body.Close()
-		data, _ = ioutil.ReadAll(response.Body)
+		data, _ = io.ReadAll(response.Body)
 	}
 
 	stmt, _ = db.Prepare("INSERT INTO attachments (message_id, url, name, contents, is_compressed) VALUES (?, ?, ?, COMPRESS(?), 1);")
@@ -82,6 +82,6 @@ func downloadAttachment(db *sql.DB, id, url, filename string) {
 	}
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "log"
 }

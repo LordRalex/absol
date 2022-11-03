@@ -25,6 +25,25 @@ type Module struct {
 
 func (m *Module) Load(d *discordgo.Session) {
 	d.AddHandlerOnce(func(ds *discordgo.Session, e *discordgo.Connect) {
+		db, err := database.Get()
+		if err != nil {
+			logger.Err().Printf("Error getting DB connection: %s\n", err.Error())
+			return
+		}
+
+		_ = db.AutoMigrate(&Site{})
+
+		var hooks []string
+		err = db.Model(&Site{}).Select("webhook").Where("webhook <> ''").Distinct().Find(&hooks).Error
+		if err != nil {
+			logger.Err().Printf("Error looking for new db sites: %s\n", err.Error())
+			return
+		}
+
+		if len(hooks) == 0 {
+			return
+		}
+
 		//update the webhooks with our avatar, just so it's nice to see
 		url := ds.State.User.AvatarURL("")
 
@@ -56,20 +75,6 @@ func (m *Module) Load(d *discordgo.Session) {
 			return
 		}
 
-		db, err := database.Get()
-		if err != nil {
-			logger.Err().Printf("Error getting DB connection: %s\n", err.Error())
-			return
-		}
-
-		_ = db.AutoMigrate(&Site{})
-
-		var hooks []string
-		err = db.Model(&Site{}).Select("webhook").Where("webhook <> ''").Distinct().Find(&hooks).Error
-		if err != nil {
-			logger.Err().Printf("Error looking for new db sites: %s\n", err.Error())
-			return
-		}
 		for _, v := range hooks {
 			logger.Debug().Printf("Updating webhook with our avatar: %s\n", v)
 			request, _ := http.NewRequest("PATCH", v, bytes.NewBuffer(jsonData))
@@ -98,15 +103,11 @@ func (m *Module) Load(d *discordgo.Session) {
 			}
 
 			for {
-				select {
-				case <-timer.C:
-					{
-						for _, v := range knownSites {
-							go func(s *Site) {
-								s.runTick(ds)
-							}(v)
-						}
-					}
+				<-timer.C
+				for _, v := range knownSites {
+					go func(s *Site) {
+						s.runTick(ds)
+					}(v)
 				}
 			}
 		}(d)
@@ -168,6 +169,6 @@ func syncSites() {
 	}
 }
 
-func (Module) Name() string {
+func (*Module) Name() string {
 	return "alert"
 }

@@ -44,7 +44,7 @@ func onMessageCommand(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 
 func RunModuleCommand(session *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
 	m := make([]string, 0)
-	for k, _ := range modules.GetLoaded() {
+	for k := range modules.GetLoaded() {
 		m = append(m, k)
 	}
 	_, _ = session.ChannelMessageSend(mc.ChannelID, "Registered: "+strings.Join(m, ", "))

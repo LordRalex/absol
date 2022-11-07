@@ -134,6 +134,7 @@ func (s *Site) sendMessage(ds *discordgo.Session, msg string) {
 	if s.Webhook != "" {
 		embed := &discordgo.MessageEmbed{
 			URL:         s.ElmahUrl,
+			Title:       "Elmah",
 			Description: msg,
 			Timestamp:   time.Now().Format(time.RFC3339),
 			Author:      &discordgo.MessageEmbedAuthor{Name: s.SiteName},

@@ -30,6 +30,10 @@ func runTick(ds *discordgo.Session) {
 	logger.Debug().Print("Running channel cleanup")
 	envChan := env.Get("cleaner.channel")
 
+	if envChan == "" {
+		return
+	}
+
 	postDelay := -1 * time.Hour * 24
 	delay := env.GetInt("cleaner.time")
 	if delay != 0 {
@@ -41,6 +45,9 @@ func runTick(ds *discordgo.Session) {
 	cutOff := time.Now().Add(postDelay)
 
 	for _, channel := range channels {
+		if channel == "" {
+			continue
+		}
 		c := api.GetChannel(ds, channel)
 
 		pinned, err := ds.ChannelMessagesPinned(c.ID)

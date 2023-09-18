@@ -82,7 +82,8 @@ func (*Module) Load(ds *discordgo.Session) {
 						_ = s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
 					}
 				} else {
-					_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unknown action"})
+					msg := "Unknown action"
+					_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 				}
 			}
 		}
@@ -166,13 +167,15 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	messageId := i.ApplicationCommandData().TargetID
 	message, err := s.ChannelMessage(i.ChannelID, messageId)
 	if err != nil {
-		_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
+		msg := "Submitting report failed"
+		_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	channel, err := getChannelForReport(s, i.GuildID, messageId)
 	if err != nil {
-		_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
+		msg := "Submitting report failed"
+		_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
@@ -188,7 +191,8 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 		if err != nil {
 			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
-			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
+			msg := "Submitting report failed"
+			_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 			return
 		}
 	} else {
@@ -254,7 +258,8 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 		if err != nil {
 			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
-			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
+			msg := "Submitting report failed"
+			_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 			return
 		}
 	} else {
@@ -266,12 +271,14 @@ func submitReport(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		})
 		if err != nil {
 			logger.Err().Printf("Error submitting report for %s: %s\n", message.ID, err.Error())
-			_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Submitting report failed"})
+			msg := "Submitting report failed"
+			_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 			return
 		}
 	}
 
-	_, _ = s.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Report submitted"})
+	msg := "Report submitted"
+	_, _ = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 }
 
 func (*Module) Name() string {

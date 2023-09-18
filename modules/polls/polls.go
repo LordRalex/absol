@@ -64,7 +64,7 @@ func (*Module) Load(ds *discordgo.Session) {
 				if strings.HasPrefix(i.Interaction.MessageComponentData().CustomID, "vote:") {
 					_ = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 						Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-						Data: &discordgo.InteractionResponseData{Flags: uint64(discordgo.MessageFlagsEphemeral)},
+						Data: &discordgo.InteractionResponseData{Flags: discordgo.MessageFlagsEphemeral},
 					})
 
 					runVoteCast(ds, i)

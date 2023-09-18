@@ -1,5 +1,4 @@
 //go:build modules.factoids || modules.all
-// +build modules.factoids modules.all
 
 package modules
 

@@ -43,7 +43,7 @@ var updatePollOperation = &discordgo.ApplicationCommand{
 func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	_ = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{Flags: uint64(discordgo.MessageFlagsEphemeral)},
+		Data: &discordgo.InteractionResponseData{Flags: discordgo.MessageFlagsEphemeral},
 	})
 
 	commandData := i.ApplicationCommandData()
@@ -56,16 +56,18 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 	}
 
+	msg := "Unable to get poll"
+
 	originalMessage, err := ds.ChannelMessage(i.ChannelID, messageId)
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Println(err.Error())
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
@@ -75,11 +77,12 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Err().Println(err.Error())
 		}
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 	if poll.Closed {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll is already closed"})
+		msg = "Poll is already closed"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
@@ -105,7 +108,8 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 				fileId := v.Value.(string)
 				description, err = downloadFile(commandData.Resolved.Attachments[fileId].URL)
 				if err != nil {
-					_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error downloading file: " + err.Error()})
+					msg = "Error downloading file: " + err.Error()
+					_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 					return
 				}
 			}
@@ -119,5 +123,6 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	_, _ = ds.ChannelMessageEditComplex(edit)
 
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll updated"})
+	msg = "Poll updated"
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 }

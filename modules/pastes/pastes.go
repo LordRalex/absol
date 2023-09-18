@@ -39,8 +39,8 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	if !used {
 		return
 	}
-	rows := []discordgo.MessageComponent{}
-	row := []discordgo.MessageComponent{}
+	var rows []discordgo.MessageComponent
+	var row []discordgo.MessageComponent
 	for _, element := range mc.Attachments {
 		if isAcceptedFile(element) {
 			btn := discordgo.Button{

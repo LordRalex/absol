@@ -1,5 +1,4 @@
 //go:build modules.mcping || modules.all
-// +build modules.mcping modules.all
 
 package modules
 

@@ -82,8 +82,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	content, err := readFromUrl(pasteLink)
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Invalid URL",
+		msg := "Invalid URL"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -91,8 +92,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Printf("Failed to connect to database\n%s", err)
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Failed to connect to database",
+		msg := "Failed to connect to database"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -102,8 +104,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Failed to connect to database",
+		msg := "Failed to connect to database"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -112,8 +115,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, v := range values {
 		matches, err := regexp.Match(v.MatchCriteria, content)
 		if err != nil {
-			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-				Content: v.Name + " is an invalid regex statement: " + err.Error(),
+			msg := v.Name + " is an invalid regex statement: " + err.Error()
+			_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
 			})
 			return
 		}
@@ -123,8 +127,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	if len(results) == 0 {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Report for " + pasteLink + "\nNo matches found",
+		msg := "Report for " + pasteLink + "\nNo matches found"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -133,8 +138,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	err = db.Find(&data, results).Order("severity desc").Error
 	if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Failed to connect to database",
+		msg := "Failed to connect to database"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -146,8 +152,8 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 		message += v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-		Content: message,
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Content: &message,
 	})
 }
 

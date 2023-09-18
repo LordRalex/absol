@@ -6,8 +6,8 @@ import (
 	"github.com/lordralex/absol/api/logger"
 )
 
-var availableModules = make(map[string]api.Module, 0)
-var loadedModules = make(map[string]api.Module, 0)
+var availableModules = make(map[string]api.Module)
+var loadedModules = make(map[string]api.Module)
 
 func Load(ds *discordgo.Session, modules []string) {
 	if len(modules) == 1 && modules[0] == "all" {

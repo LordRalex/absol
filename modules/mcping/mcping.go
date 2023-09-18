@@ -89,8 +89,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	if len(connectionSlice) == 2 {
 		port, err = strconv.Atoi(connectionSlice[1])
 		if err != nil {
-			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-				Content: "That's not a valid port.",
+			msg := "That's not a valid port."
+			_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &msg,
 			})
 			return
 		}
@@ -101,8 +102,9 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	response, err := pinger.PingWithTimeout(connectionSlice[0], uint16(port), 5*time.Second)
 	if err != nil {
 		// if it takes more than five seconds to ping, then the server is probably down
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-			Content: "Connecting to the server failed.",
+		msg := "Connecting to the server failed."
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+			Content: &msg,
 		})
 		return
 	}
@@ -155,8 +157,8 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		files = nil
 	}
 
-	_, err = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{
-		Embeds: []*discordgo.MessageEmbed{embed},
+	_, err = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Embeds: &[]*discordgo.MessageEmbed{embed},
 		Files:  files,
 	})
 	if err != nil {

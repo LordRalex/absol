@@ -26,26 +26,29 @@ var closePollOperation = &discordgo.ApplicationCommand{
 func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	_ = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{Flags: uint64(discordgo.MessageFlagsEphemeral)},
+		Data: &discordgo.InteractionResponseData{Flags: discordgo.MessageFlagsEphemeral},
 	})
 
 	messageId := i.ApplicationCommandData().Options[0].StringValue()
 
 	originalMessage, err := ds.ChannelMessage(i.ChannelID, messageId)
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		msg := "Unable to get poll"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	if originalMessage.Author.ID != ds.State.User.ID {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "This does not appear to be a poll"})
+		msg := "This does not appear to be a poll"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Println(err.Error())
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		msg := "Unable to get poll"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
@@ -55,17 +58,20 @@ func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Err().Println(err.Error())
 		}
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Unable to get poll"})
+		msg := "Unable to get poll"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 	if poll.Closed {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll is already closed"})
+		msg := "Poll is already closed"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	closePoll(ds, poll, originalMessage, db)
 
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll closed"})
+	msg := "Poll closed"
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 }
 
 func closePoll(ds *discordgo.Session, poll *Poll, message *discordgo.Message, db *gorm.DB) {

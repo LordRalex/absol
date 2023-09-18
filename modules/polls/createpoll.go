@@ -56,7 +56,7 @@ var createPollOperation = &discordgo.ApplicationCommand{
 func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	_ = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{Flags: uint64(discordgo.MessageFlagsEphemeral)},
+		Data: &discordgo.InteractionResponseData{Flags: discordgo.MessageFlagsEphemeral},
 	})
 
 	commandData := i.ApplicationCommandData()
@@ -82,7 +82,8 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 				fileId := v.Value.(string)
 				description, err = downloadFile(commandData.Resolved.Attachments[fileId].URL)
 				if err != nil {
-					_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error downloading file: " + err.Error()})
+					msg := "Error downloading file: " + err.Error()
+					_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 					return
 				}
 			}
@@ -95,7 +96,8 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 				fileId := v.Value.(string)
 				data, err := downloadFile(commandData.Resolved.Attachments[fileId].URL)
 				if err != nil {
-					_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error downloading file: " + err.Error()})
+					msg := "Error downloading file: " + err.Error()
+					_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 					return
 				}
 				choices = strings.Split(data, "\r\n")
@@ -108,33 +110,40 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	if len(choices) < 2 {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "You need at least 2 choices"})
+		msg := "You need at least 2 choices"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
+		return
 	}
 
 	if len(choices) > 15 {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Limit of 15 choices"})
+		msg := "Limit of 15 choices"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	if hasDupes(choices) {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices cannot repeat"})
+		msg := "Choices cannot repeat"
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	endDate := time.Now().AddDate(0, 0, 1)
 	if timeout != "" {
+		msg := "Timeout is invalid"
 		if strings.HasSuffix(timeout, "d") {
 			//parse as days
 			part := strings.TrimSuffix(timeout, "d")
 			numDays, err := strconv.Atoi(part)
 			if err != nil {
-				_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Timeout is invalid"})
+				_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
+				return
 			}
 			endDate = time.Now().AddDate(0, 0, numDays)
 		} else {
 			timer, err := time.ParseDuration(timeout)
 			if err != nil {
-				_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Timeout is invalid"})
+				_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
+				return
 			}
 			endDate = time.Now().Add(timer)
 		}
@@ -144,7 +153,8 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	for _, v := range choices {
 		if len(v) > 50 {
-			_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Choices can be at most 50 characters"})
+			msg := "Choices can be at most 50 characters"
+			_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 			return
 		}
 	}
@@ -171,22 +181,26 @@ func runCreateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	db, err := database.Get()
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error connecting to database: " + err.Error()})
+		msg := "Error connecting to database: " + err.Error()
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	message, err := ds.ChannelMessageSendComplex(i.ChannelID, m)
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error sending poll: " + err.Error()})
+		msg := "Error sending poll: " + err.Error()
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
 	err = db.Create(&Poll{Title: title, MessageId: message.ID, ChannelId: i.ChannelID, EndAt: endDate, Started: time.Now()}).Error
 	if err != nil {
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Error saving poll to database: " + err.Error()})
+		msg := "Error saving poll to database: " + err.Error()
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		_ = ds.ChannelMessageDelete(message.ChannelID, message.ID)
 		return
 	}
 
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Poll created"})
+	msg := "Poll created"
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 }

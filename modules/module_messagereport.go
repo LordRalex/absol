@@ -1,5 +1,4 @@
 //go:build modules.messagereport || modules.all
-// +build modules.messagereport modules.all
 
 package modules
 

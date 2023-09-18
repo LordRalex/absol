@@ -12,7 +12,8 @@ func runVoteCast(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	db, err := database.Get()
 	if err != nil {
 		logger.Err().Println(err.Error())
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote failed to be cast..."})
+		msg := "Vote failed to be cast..."
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 		return
 	}
 
@@ -29,8 +30,10 @@ func runVoteCast(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if err != nil {
 		logger.Err().Println(err.Error())
-		_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote failed to be cast..."})
+		msg := "Vote failed to be cast..."
+		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 	}
 
-	_, _ = ds.InteractionResponseEdit(appId, i.Interaction, &discordgo.WebhookEdit{Content: "Vote cast!"})
+	msg := "Vote cast!"
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{Content: &msg})
 }

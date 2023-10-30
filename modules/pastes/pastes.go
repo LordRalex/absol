@@ -49,7 +49,7 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 				},
 				Label: "View " + element.Filename,
 				Style: discordgo.LinkButton,
-				URL:   fmt.Sprintf("%s/%s/%s/%s", env.Get("pastes.url"), mc.ChannelID, element.ID, element.Filename),
+				URL:   fmt.Sprintf("%s/%s/%s/%s", env.Get("pastes.url"), mc.ChannelID, mc.ID, element.Filename),
 			}
 			row = append(row, btn)
 			if len(row) >= 5 {

@@ -75,7 +75,7 @@ func (*Module) Load(ds *discordgo.Session) {
 				})
 
 				if action != nil {
-					action.Function(action, s, i.Interaction, customId)
+					action.Function(s, i.Interaction, customId)
 
 					//delete the confirmation request
 					if action.RequiresConfirmation {

@@ -4,10 +4,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api/logger"
 	"strings"
+	"time"
 )
 
 type InteractionAction struct {
-	Function             func(action *InteractionAction, session *discordgo.Session, interaction *discordgo.Interaction, id *CustomId)
+	Function             func(session *discordgo.Session, interaction *discordgo.Interaction, id *CustomId)
 	ButtonText           string
 	RequiresConfirmation bool
 	Action               string
@@ -93,7 +94,7 @@ func getRawAction(name string) *InteractionAction {
 	return nil
 }
 
-func deleteMessage(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func deleteMessage(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
 	err := s.ChannelMessageDelete(id.ChannelId, id.MessageId)
 	if err != nil {
 		_, _ = s.ChannelMessageSend(i.Message.ChannelID, "Failed to delete message, it may already be deleted")
@@ -103,7 +104,7 @@ func deleteMessage(action *InteractionAction, s *discordgo.Session, i *discordgo
 	}
 }
 
-func sendConfirmation(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func sendConfirmation(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
 	id.BaseMessageId = i.Message.ID
 
 	confirm := id.Clone()
@@ -134,13 +135,26 @@ func sendConfirmation(action *InteractionAction, s *discordgo.Session, i *discor
 	_, _ = s.ChannelMessageSendComplex(i.ChannelID, m)
 }
 
-func muteUser(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func muteUser(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+	till := time.Now().Add(time.Hour * 24)
+	err := s.GuildMemberTimeout(i.GuildID, id.UserId, &till)
+	if err != nil {
+		_, _ = s.ChannelMessageSend(i.Message.ChannelID, "Failed to time out user: "+err.Error())
+		return
+	}
+	_, _ = s.ChannelMessageSend(i.Message.ChannelID, "User timed out for 24 hours")
 }
 
-func banUser(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func banUser(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+	err := s.GuildBanCreate(i.GuildID, id.UserId, 0)
+	if err != nil {
+		_, _ = s.ChannelMessageSend(i.Message.ChannelID, "Failed to ban user: "+err.Error())
+		return
+	}
+	_, _ = s.ChannelMessageSend(i.Message.ChannelID, "User banned")
 }
 
-func cancelConfirmation(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func cancelConfirmation(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
 	err := s.ChannelMessageDelete(i.Message.ChannelID, i.Message.ID)
 	if err != nil {
 		logger.Err().Println(err.Error())
@@ -153,6 +167,6 @@ func cancelConfirmation(action *InteractionAction, s *discordgo.Session, i *disc
 	}
 }
 
-func closeReport(action *InteractionAction, s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
+func closeReport(s *discordgo.Session, i *discordgo.Interaction, id *CustomId) {
 	_, _ = s.ChannelDelete(i.ChannelID)
 }

@@ -1,6 +1,7 @@
 package factoids
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
@@ -8,6 +9,7 @@ import (
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
 	"gorm.io/gorm"
+	"slices"
 	"strings"
 	"time"
 )
@@ -25,6 +27,11 @@ func (*Module) Load(ds *discordgo.Session) {
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
 	if len(args) == 0 {
+		return
+	}
+
+	guilds := env.GetStringArray("factoids.guilds", ";")
+	if !slices.Contains(guilds, mc.GuildID) {
 		return
 	}
 
@@ -70,7 +77,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	var data []Factoid
 	err = db.Where("name IN (?)", factoids).Find(&data).Error
 
-	if gorm.ErrRecordNotFound == err || (err == nil && len(data) == 0) {
+	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && len(data) == 0) {
 		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
 		return
 	} else if err != nil {

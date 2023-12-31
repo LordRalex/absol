@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
 	"golang.org/x/oauth2/clientcredentials"
 	"golang.org/x/oauth2/twitch"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 )
@@ -27,6 +29,13 @@ func init() {
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
+	channel := api.GetChannel(ds, mc.ChannelID)
+
+	guilds := env.GetStringArray("twitch.guilds", ";")
+	if !slices.Contains(guilds, mc.GuildID) && channel.Type != discordgo.ChannelTypeDM {
+		return
+	}
+
 	var err error
 
 	if len(args) != 1 {

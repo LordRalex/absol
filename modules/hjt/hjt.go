@@ -1,14 +1,12 @@
 package hjt
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"gorm.io/gorm"
-	"io"
-	"net/http"
 	"regexp"
 )
 
@@ -17,6 +15,7 @@ type Module struct {
 }
 
 var appId string
+var hjtUrl string
 
 func (*Module) Load(ds *discordgo.Session) {
 	appId = env.Get("discord.app_id")
@@ -31,6 +30,8 @@ func (*Module) Load(ds *discordgo.Session) {
 
 		guilds = append(guilds, v)
 	}
+
+	hjtUrl = env.GetOr("hjt.url", "https://minecrafthopper.net/hjt.json")
 
 	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		for _, v := range guilds {
@@ -80,7 +81,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	pasteLink := i.ApplicationCommandData().Options[0].StringValue()
 
-	content, err := readFromUrl(pasteLink)
+	content, err := api.GetFromUrl(pasteLink)
 	if err != nil {
 		msg := "Invalid URL"
 		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
@@ -89,7 +90,8 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	db, err := database.Get()
+	var values []HJT
+	values, err = getHjts()
 	if err != nil {
 		logger.Err().Printf("Failed to connect to database\n%s", err)
 		msg := "Failed to connect to database"
@@ -99,21 +101,10 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	var values []HJT
-	err = db.Table("hjts").Select([]string{"id", "name", "match_criteria"}).Find(&values).Error
-
-	if err != nil {
-		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		msg := "Failed to connect to database"
-		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content: &msg,
-		})
-		return
-	}
-
-	var results []uint
+	var results []HJT
+	var matches bool
 	for _, v := range values {
-		matches, err := regexp.Match(v.MatchCriteria, content)
+		matches, err = regexp.Match(v.MatchCriteria, content)
 		if err != nil {
 			msg := v.Name + " is an invalid regex statement: " + err.Error()
 			_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
@@ -122,7 +113,7 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 			return
 		}
 		if matches {
-			results = append(results, v.Id)
+			results = append(results, v)
 		}
 	}
 
@@ -134,52 +125,25 @@ func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
-	var data []HJT
-	err = db.Find(&data, results).Order("severity desc").Error
-	if err != nil {
-		logger.Err().Printf("Failed to pull data from database\n%s", err)
-		msg := "Failed to connect to database"
-		_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content: &msg,
-		})
-		return
-	}
-
 	message := "Report for " + pasteLink + "\n"
-	for i, v := range data {
-		if i != 0 {
+	for id, v := range results {
+		if id != 0 {
 			message += "\n"
 		}
-		message += v.SeverityEmoji + " [" + v.Category + "] " + v.Name + ": " + v.Description
+		message += v.GetEmojiString() + " [" + v.Category + "] " + v.Name + ": " + v.Description
 	}
 	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 		Content: &message,
 	})
 }
 
-func readFromUrl(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return []byte{}, err
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return []byte{}, err
-	}
-	return data, nil
-}
-
 type HJT struct {
 	Id            uint
 	Name          string
-	MatchCriteria string
+	MatchCriteria string `json:"match_criteria"`
 	Description   string
 	Category      string
 	Severity      Severity
-	SeverityEmoji string `gorm:"-"`
 }
 
 type Severity int
@@ -189,8 +153,8 @@ var SeverityLow Severity = 1
 var SeverityMedium Severity = 2
 var SeverityHigh Severity = 3
 
-func (s Severity) ToEmojiString() string {
-	switch s {
+func (s HJT) GetEmojiString() string {
+	switch s.Severity {
 	case SeverityHigh:
 		return ":red_circle:"
 	case SeverityLow:
@@ -202,14 +166,16 @@ func (s Severity) ToEmojiString() string {
 	}
 }
 
-func (h *HJT) AfterFind(tx *gorm.DB) (err error) {
-	h.SeverityEmoji = h.Severity.ToEmojiString()
-	if h.Name == "" {
-		h.Name = h.MatchCriteria
-	}
-	return
-}
-
 func (*Module) Name() string {
 	return "hjt"
+}
+
+func getHjts() ([]HJT, error) {
+	data, err := api.GetFromUrl(hjtUrl)
+	if err != nil {
+		return nil, err
+	}
+	var results []HJT
+	err = json.NewDecoder(bytes.NewReader(data)).Decode(&results)
+	return results, err
 }

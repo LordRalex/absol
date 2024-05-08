@@ -1,18 +1,20 @@
 package factoids
 
 import (
-	"errors"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
-	"github.com/lordralex/absol/api/database"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"gorm.io/gorm"
 	"slices"
 	"strings"
 	"time"
 )
+
+var factoidsUrl string
+var maxFactoids int
 
 type Module struct {
 	api.Module
@@ -23,6 +25,13 @@ func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterCommand("factoid", RunCommand)
 
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
+
+	factoidsUrl = env.GetOr("hjt.url", "https://minecrafthopper.net/factoids.json")
+
+	maxFactoids = env.GetInt("factoids.max")
+	if maxFactoids <= 0 {
+		maxFactoids = 5
+	}
 }
 
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
@@ -58,40 +67,27 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 		}
 	}
 
-	max := env.GetInt("factoids.max")
-	if max == 0 {
-		max = 5
-	}
-	if len(factoids) > max {
-		_ = SendWithSelfDelete(ds, mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", max))
+	if len(factoids) > maxFactoids {
+		_ = SendWithSelfDelete(ds, mc.ChannelID, fmt.Sprintf("Cannot send more than %d factoids at once", maxFactoids))
 		return
 	}
 
-	db, err := database.Get()
+	matches, err := getMatchingFactoids(factoids)
 	if err != nil {
-		err = SendWithSelfDelete(ds, mc.ChannelID, "Failed to connect to database")
-		logger.Err().Printf("Failed to connect to database\n%s", err)
-		return
-	}
-
-	var data []Factoid
-	err = db.Where("name IN (?)", factoids).Find(&data).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && len(data) == 0) {
-		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
-		return
-	} else if err != nil {
 		logger.Err().Printf("Failed to pull data from database\n%s", err)
 		return
+	} else if len(matches) == 0 {
+		_ = SendWithSelfDelete(ds, mc.ChannelID, "No factoid with the given name was found: "+strings.Join(factoids, ", "))
+		return
 	}
 
-	if len(factoids) != len(data) {
+	if len(factoids) != len(matches) {
 		//we have a missing one...
 		missing := make([]string, 0)
 		for _, v := range factoids {
 			good := false
-			for _, k := range data {
-				if v == k.Name {
+			for _, k := range matches {
+				if match(k.Name, v) {
 					good = true
 					break
 				}
@@ -110,8 +106,8 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 
 	msg := ""
 	for i, v := range factoids {
-		for _, o := range data {
-			if o.Name == v {
+		for _, o := range matches {
+			if match(v, o.Name) {
 				msg += CleanupFactoid(o.Content)
 				if i+1 != len(factoids) {
 					msg += "\n\n"
@@ -202,10 +198,38 @@ func CleanupFactoid(msg string) string {
 }
 
 type Factoid struct {
-	Name    string `gorm:"name"`
-	Content string `gorm:"content"`
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 func (*Module) Name() string {
 	return "factoids"
+}
+
+func getMatchingFactoids(names []string) ([]Factoid, error) {
+	data, err := api.GetFromUrl(factoidsUrl)
+	if err != nil {
+		return nil, err
+	}
+	var factoids []Factoid
+	err = json.NewDecoder(bytes.NewReader(data)).Decode(&factoids)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []Factoid
+
+	for _, v := range names {
+		for _, z := range factoids {
+			if match(v, z.Name) {
+				matches = append(matches, z)
+			}
+		}
+	}
+
+	return matches, err
+}
+
+func match(v, z string) bool {
+	return strings.ToLower(v) == strings.ToLower(z)
 }

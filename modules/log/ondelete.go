@@ -42,9 +42,9 @@ func OnMessageDelete(ds *discordgo.Session, mc *discordgo.MessageDelete) {
 					var deleter, messenger string
 					for _, u := range auditLog.Users {
 						if u.ID == v.UserID {
-							deleter = u.Username + "#" + u.Discriminator
+							deleter = u.Username
 						} else if u.ID == v.TargetID {
-							messenger = u.Username + "#" + u.Discriminator
+							messenger = u.Username
 						}
 					}
 

@@ -50,7 +50,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 		}
 	}
 
-	logger.Debug().Printf("[%s] [%s] [%s#%s] [%s]", c.Name, mc.ID, mc.Author.Username, mc.Author.Discriminator, message)
+	logger.Debug().Printf("[%s] [%s] [%s] [%s]", c.Name, mc.ID, mc.Author.Username, message)
 
 	gorm, err := database.Get()
 	if err != nil {
@@ -79,7 +79,7 @@ func OnMessageCreate(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	}
 
 	stmt, _ = db.Prepare("INSERT INTO users (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = ?;")
-	err = database.Execute(stmt, mc.Author.ID, mc.Author.Username+"#"+mc.Author.Discriminator, mc.Author.Username+"#"+mc.Author.Discriminator)
+	err = database.Execute(stmt, mc.Author.ID, mc.Author.Username, mc.Author.Username)
 	if err != nil {
 		logger.Err().Print(err.Error())
 	}

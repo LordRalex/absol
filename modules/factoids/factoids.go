@@ -143,7 +143,7 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	embed := &discordgo.MessageEmbed{
 		Description: msg,
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "I am a bot, I will not respond to you. Command issued by " + mc.Author.Username + "#" + mc.Author.Discriminator,
+			Text: "I am a bot, I will not respond to you. Command issued by " + mc.Author.Username,
 		},
 	}
 

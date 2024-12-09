@@ -133,10 +133,10 @@ func toggleButton(s *discordgo.Session, channelId string, messageId string, butt
 
 	edit := discordgo.NewMessageEdit(originalMessage.ChannelID, originalMessage.ID)
 	edit.Content = &originalMessage.Content
-	edit.Components = originalMessage.Components
-	edit.Embeds = originalMessage.Embeds
+	edit.Components = &originalMessage.Components
+	edit.Embeds = &originalMessage.Embeds
 
-	for _, v := range edit.Components {
+	for _, v := range *edit.Components {
 		if v.Type() == discordgo.ActionsRowComponent {
 			row := v.(*discordgo.ActionsRow)
 			for _, b := range row.Components {

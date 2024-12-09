@@ -87,11 +87,12 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	edit := discordgo.NewMessageEdit(originalMessage.ChannelID, originalMessage.ID)
-	edit.Components = originalMessage.Components
-	edit.Embeds = originalMessage.Embeds
+	edit.Components = &originalMessage.Components
+	edit.Embeds = &originalMessage.Embeds
 
-	title := edit.Embeds[0].Title
-	description := edit.Embeds[0].Description
+	t := *edit.Embeds
+	title := t[0].Title
+	description := t[0].Description
 
 	for _, v := range commandData.Options {
 		switch v.Name {
@@ -115,8 +116,8 @@ func runUpdateCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 			}
 		}
 	}
-	edit.Embeds[0].Title = title
-	edit.Embeds[0].Description = description
+	t[0].Title = title
+	t[0].Description = description
 
 	poll.Title = title
 	_ = db.Save(poll).Error

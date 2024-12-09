@@ -76,10 +76,10 @@ func runCloseCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 
 func closePoll(ds *discordgo.Session, poll *Poll, message *discordgo.Message, db *gorm.DB) {
 	edit := discordgo.NewMessageEdit(message.ChannelID, message.ID)
-	edit.Components = message.Components
-	edit.Embeds = message.Embeds
+	edit.Components = &message.Components
+	edit.Embeds = &message.Embeds
 
-	for _, v := range edit.Components {
+	for _, v := range *edit.Components {
 		if v.Type() == discordgo.ActionsRowComponent {
 			row := v.(*discordgo.ActionsRow)
 			for _, b := range row.Components {

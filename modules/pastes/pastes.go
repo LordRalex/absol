@@ -43,8 +43,8 @@ func HandleMessage(ds *discordgo.Session, mc *discordgo.MessageCreate) {
 	var row []discordgo.MessageComponent
 	for _, element := range mc.Attachments {
 		if isAcceptedFile(element) {
-			btn := discordgo.Button{
-				Emoji: discordgo.ComponentEmoji{
+			btn := &discordgo.Button{
+				Emoji: &discordgo.ComponentEmoji{
 					Name: "📜",
 				},
 				Label: "View " + element.Filename,

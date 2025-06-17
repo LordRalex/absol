@@ -26,7 +26,7 @@ func (*Module) Load(ds *discordgo.Session) {
 
 	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
 
-	factoidsUrl = env.GetOr("hjt.url", "https://minecrafthopper.net/factoids.json")
+	factoidsUrl = env.GetOr("factoids.url", "https://minecrafthopper.net/factoids.json")
 
 	maxFactoids = env.GetInt("factoids.max")
 	if maxFactoids <= 0 {

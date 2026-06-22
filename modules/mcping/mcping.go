@@ -3,57 +3,26 @@ package mcping
 import (
 	"bytes"
 	"encoding/base64"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/iverly/go-mcping/mcping"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type Module struct {
 	api.Module
 }
 
-var appId string
-
 func (*Module) Load(ds *discordgo.Session) {
-	appId = env.Get("discord.app_id")
+	guilds := api.CleanStringArray(env.GetStringArray("mcping.guilds", ";"))
 
-	var guilds []string
-
-	maps := env.GetStringArray("mcping.guilds", ";")
-	for _, v := range maps {
-		if v == "" {
-			continue
-		}
-
-		guilds = append(guilds, v)
-	}
-
-	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		for _, v := range guilds {
-			logger.Out().Printf("Registering %s for guild %s\n", mcpingOperation.Name, v)
-			_, err := s.ApplicationCommandCreate(appId, v, mcpingOperation)
-			if err != nil {
-				logger.Err().Printf("Cannot create slash command %q: %v", mcpingOperation.Name, err)
-			}
-		}
-	})
-
-	ds.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		switch i.Type {
-		case discordgo.InteractionApplicationCommand:
-			{
-				if i.ApplicationCommandData().Name == mcpingOperation.Name {
-					runCommand(s, i)
-				}
-			}
-		}
-	})
+	api.RegisterSlashCommnand(ds, guilds, mcpingOperation, runCommand)
 }
 
 var mcpingOperation = &discordgo.ApplicationCommand{

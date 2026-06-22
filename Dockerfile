@@ -1,14 +1,20 @@
 ###
 # Builder to compile our golang code
 ###
-FROM golang:1.24-alpine AS builder
+FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
 
-ARG tags="modules.all,databases.all"
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
+
+COPY --from=xx / /
 
 WORKDIR /build
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
 COPY . .
 
-RUN go build -o absol -buildvcs=false -tags=$tags -v github.com/lordralex/absol/core
+RUN xx-go build -o absol -buildvcs=false -v github.com/lordralex/absol/core
 
 ###
 # Now generate our smaller image
@@ -16,10 +22,6 @@ RUN go build -o absol -buildvcs=false -tags=$tags -v github.com/lordralex/absol/
 FROM alpine
 
 COPY --from=builder /build/absol /go/bin/absol
-
-ENV DISCORD_TOKEN="YOUR DISCORD BOT TOKEN"
-ENV DATABASE_DIALECT="mysql"
-ENV DATABASE_URL=""
 
 ENTRYPOINT ["/go/bin/absol"]
 CMD ["all"]

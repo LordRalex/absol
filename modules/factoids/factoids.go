@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"slices"
-	"strings"
-	"time"
 )
 
-var factoidsUrl string
-var maxFactoids int
+var factoidsUrl string = env.GetOr("factoids.url", "https://minecrafthopper.net/factoids.json")
+var maxFactoids int = env.GetInt("factoids.max")
 
 type Module struct {
 	api.Module
@@ -24,16 +25,38 @@ func (*Module) Load(ds *discordgo.Session) {
 	api.RegisterCommand("f", RunCommand)
 	api.RegisterCommand("factoid", RunCommand)
 
-	api.RegisterIntentNeed(discordgo.IntentsGuildMessages, discordgo.IntentsDirectMessages)
-
-	factoidsUrl = env.GetOr("factoids.url", "https://minecrafthopper.net/factoids.json")
-
-	maxFactoids = env.GetInt("factoids.max")
 	if maxFactoids <= 0 {
 		maxFactoids = 5
 	}
+
+	guilds := env.GetStringArray("factoids.guilds", ";")
+
+	api.RegisterSlashCommnand(ds, guilds, factoidCommand, runCommand)
 }
 
+var factoidCommand = &discordgo.ApplicationCommand{
+	Name:        "factoid",
+	Description: "Sends a message from a factoid to a user",
+	Type:        discordgo.ChatApplicationCommand,
+	Options: []*discordgo.ApplicationCommandOption{
+
+		{
+			Name:        "factoid",
+			Description: "Factoid to send",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+		{
+			Name:        "user",
+			Description: "User to tag",
+			Type:        discordgo.ApplicationCommandOptionUser,
+			Required:    false,
+		},
+	},
+}
+
+// Deprecated: This uses Message Intent, which is not allowed without approval
+// Use runCommand which uses application commands instead
 func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, args []string) {
 	if len(args) == 0 {
 		return
@@ -162,6 +185,51 @@ func RunCommand(ds *discordgo.Session, mc *discordgo.MessageCreate, cmd string, 
 	}
 }
 
+func runCommand(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	})
+	if err != nil {
+		logger.Err().Println(err.Error())
+		return
+	}
+
+	factoid := i.ApplicationCommandData().GetOption("factoid").StringValue()
+	user := i.ApplicationCommandData().GetOption("user").UserValue(ds)
+
+	resolvedFactoids, err := getMatchingFactoids([]string{factoid})
+	if err != nil {
+		msg := "Error attempting to resolve factoids"
+		_ = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: msg,
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+		return
+	}
+
+	msg := CleanupFactoid(resolvedFactoids[0].Content)
+
+	header := ""
+	if user != nil {
+		header = user.Mention() + ", please refer to the below information."
+	}
+
+	embed := &discordgo.MessageEmbed{
+		Description: msg,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "I am a bot, I will not respond to you. Command issued by " + i.Member.User.Username,
+		},
+	}
+
+	_, _ = ds.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Content: &header,
+		Embeds:  &[]*discordgo.MessageEmbed{embed},
+	})
+}
+
 func SendWithSelfDelete(ds *discordgo.Session, channelId, message string) error {
 	m, err := ds.ChannelMessageSend(channelId, message)
 	if err != nil {
@@ -176,13 +244,13 @@ func SendWithSelfDelete(ds *discordgo.Session, channelId, message string) error 
 }
 
 func CleanupFactoid(msg string) string {
-	msg = strings.Replace(msg, "[b]", "**", -1)
-	msg = strings.Replace(msg, "[/b]", "**", -1)
-	msg = strings.Replace(msg, "[u]", "__", -1)
-	msg = strings.Replace(msg, "[/u]", "__", -1)
-	msg = strings.Replace(msg, "[i]", "*", -1)
-	msg = strings.Replace(msg, "[/i]", "*", -1)
-	msg = strings.Replace(msg, ";;", "\n", -1)
+	msg = strings.ReplaceAll(msg, "[b]", "**")
+	msg = strings.ReplaceAll(msg, "[/b]", "**")
+	msg = strings.ReplaceAll(msg, "[u]", "__")
+	msg = strings.ReplaceAll(msg, "[/u]", "__")
+	msg = strings.ReplaceAll(msg, "[i]", "*")
+	msg = strings.ReplaceAll(msg, "[/i]", "*")
+	msg = strings.ReplaceAll(msg, ";;", "\n")
 
 	if strings.Contains(msg, "https://") || strings.Contains(msg, "http://") {
 		msgsplit := strings.Split(msg, " ")
@@ -231,5 +299,5 @@ func getMatchingFactoids(names []string) ([]Factoid, error) {
 }
 
 func match(v, z string) bool {
-	return strings.ToLower(v) == strings.ToLower(z)
+	return strings.EqualFold(v, z)
 }

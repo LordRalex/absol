@@ -1,5 +1,3 @@
-//go:build modules.factoids || modules.all
-
 package modules
 
 import (

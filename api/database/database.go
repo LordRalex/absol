@@ -2,18 +2,19 @@ package database
 
 import (
 	"database/sql"
-	"errors"
-	"github.com/lordralex/absol/api/env"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/lordralex/absol/api/env"
+	"github.com/lordralex/absol/api/logger"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var databaseConn *gorm.DB
 var locker sync.Mutex
-
-var dialects = map[string]Dialect{}
 
 func Get() (*gorm.DB, error) {
 	var err error
@@ -31,27 +32,16 @@ func Get() (*gorm.DB, error) {
 }
 
 func load() (db *gorm.DB, err error) {
-	var dialect Dialect
-	//TODO: Remove default when other drivers are supported
-	dialectName := env.GetOr("database.dialect", "mysql")
-	if dialectName == "" {
-		if len(dialects) == 1 {
-			for _, v := range dialects {
-				dialect = v
-				break
-			}
-		} else {
-			return nil, errors.New("no database dialects or more than 1 dialect available with none selected using database.dialect")
-		}
-	} else {
-		dialect = dialects[dialectName]
-	}
+	user := env.GetOr("database.user", "discord")
+	pass := env.GetOr("database.pass", "discord")
+	host := env.GetOr("database.host", "localhost:3306")
+	dbName := env.GetOr("database.db", "discord")
 
-	if dialect == nil {
-		return nil, errors.New("unknown database dialect " + dialectName)
-	}
+	logger.Debug().Printf("Connecting to DB: %s - %s", host, dbName)
 
-	db, err = gorm.Open(dialect.Load(), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+	connString := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True", user, pass, host, dbName)
+
+	db, err = gorm.Open(mysql.Open(connString), &gorm.Config{Logger: gormLogger.Default.LogMode(gormLogger.Info)})
 	if db != nil {
 		sqlDb, _ := db.DB()
 		sqlDb.SetConnMaxLifetime(time.Second * 10)
@@ -66,8 +56,4 @@ func Execute(stmt *sql.Stmt, args ...interface{}) error {
 	defer stmt.Close()
 	_, err := stmt.Exec(args...)
 	return err
-}
-
-type Dialect interface {
-	Load() gorm.Dialector
 }

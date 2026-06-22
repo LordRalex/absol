@@ -3,56 +3,24 @@ package hjt
 import (
 	"bytes"
 	"encoding/json"
+	"regexp"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/lordralex/absol/api"
 	"github.com/lordralex/absol/api/env"
 	"github.com/lordralex/absol/api/logger"
-	"regexp"
 )
 
 type Module struct {
 	api.Module
 }
 
-var appId string
-var hjtUrl string
+var hjtUrl string = env.GetOr("hjt.url", "https://minecrafthopper.net/hjt.json")
 
 func (*Module) Load(ds *discordgo.Session) {
-	appId = env.Get("discord.app_id")
+	guilds := api.CleanStringArray(env.GetStringArray("hjt.guilds", ";"))
 
-	var guilds []string
-
-	maps := env.GetStringArray("hjt.guilds", ";")
-	for _, v := range maps {
-		if v == "" {
-			continue
-		}
-
-		guilds = append(guilds, v)
-	}
-
-	hjtUrl = env.GetOr("hjt.url", "https://minecrafthopper.net/hjt.json")
-
-	ds.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		for _, v := range guilds {
-			logger.Out().Printf("Registering %s for guild %s\n", hjtOperation.Name, v)
-			_, err := s.ApplicationCommandCreate(appId, v, hjtOperation)
-			if err != nil {
-				logger.Err().Printf("Cannot create slash command %q: %v", hjtOperation.Name, err)
-			}
-		}
-	})
-
-	ds.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		switch i.Type {
-		case discordgo.InteractionApplicationCommand:
-			{
-				if i.ApplicationCommandData().Name == hjtOperation.Name {
-					runCommand(s, i)
-				}
-			}
-		}
-	})
+	api.RegisterSlashCommnand(ds, guilds, hjtOperation, runCommand)
 }
 
 var hjtOperation = &discordgo.ApplicationCommand{

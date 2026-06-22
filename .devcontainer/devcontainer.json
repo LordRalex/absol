@@ -1,0 +1,12 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:5",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.Go",
+				"GitHub.vscode-github-actions",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

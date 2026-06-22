@@ -42,3 +42,14 @@ func GetChannel(ds *discordgo.Session, channelId string) *discordgo.Channel {
 
 	return c
 }
+
+func CleanStringArray(source []string) (result []string) {
+	result = make([]string, 0)
+	for _, v := range source {
+		if v == "" {
+			continue
+		}
+		result = append(result, v)
+	}
+	return
+}

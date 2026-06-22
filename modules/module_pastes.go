@@ -1,5 +1,3 @@
-//go:build modules.pastes || modules.all
-
 package modules
 
 import (
